@@ -1,109 +1,273 @@
-"use client";
+'use client';
 
-import { useActionState } from "react";
-import Link from "next/link";
-import { ShieldAlert, Lock, User, Loader2, Landmark } from "lucide-react";
-import { loginAction } from "./actions";
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { loginAction, registerAction, forgotPasswordAction } from './action';
+import { ArrowLeft, Lock, Mail, User as UserIcon, Eye, EyeOff } from 'lucide-react';
 
 export default function LoginPage() {
-  // Menggunakan hooks useActionState bawaan React 19 / Next.js modern
-  const [state, formAction, isPending] = useActionState(loginAction, null);
+  const router = useRouter();
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
+
+  // 👁️ STATE UNTUK TOGGLE LIHAT PASSWORD
+  const [showPassword, setShowPassword] = useState(false);
+
+  // Handler Submit Utama (Sign In & Sign Up)
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+    setMsg(null);
+
+    const formData = new FormData(e.currentTarget);
+
+    if (isSignUp) {
+      const res = await registerAction(formData);
+      if (res.success) {
+        setMsg({ type: 'success', text: res.message });
+        setIsSignUp(false);
+      } else {
+        setMsg({ type: 'error', text: res.message });
+      }
+    } else {
+      const res = await loginAction(formData);
+      if (res.success && res.token) {
+        const role = res.role || 'user';
+
+        // Bersihkan memori lama agar tidak bentrok
+        localStorage.clear();
+
+        // Simpan sesi berdasarkan role
+        if (role === 'admin') {
+          localStorage.setItem('admin_token', res.token);
+          localStorage.setItem('admin_name', res.name || 'Administrator');
+          localStorage.setItem('user_role', 'admin');
+        } else {
+          localStorage.setItem('user_token', res.token);
+          localStorage.setItem('user_name', res.name || 'Pengunjung');
+          localStorage.setItem('user_role', role);
+          localStorage.setItem('user_email', res.email || '');
+        }
+
+        setMsg({ type: 'success', text: 'Login berhasil! Mengalihkan...' });
+        
+        setTimeout(() => {
+          window.location.href = res.redirectTo || (role === 'admin' ? '/admin' : '/user/dashboard');
+        }, 600);
+
+      } else {
+        setMsg({ type: 'error', text: res.message || 'Terjadi kesalahan pada sistem.' });
+      }
+    }
+
+    setLoading(false);
+  };
+
+  // Handler Submit Khusus Lupa Password
+  const handleForgotPasswordSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+    setMsg(null);
+
+    const formData = new FormData(e.currentTarget);
+    const res = await forgotPasswordAction(formData);
+
+    if (res.success) {
+      setMsg({ type: 'success', text: res.message });
+    } else {
+      setMsg({ type: 'error', text: res.message });
+    }
+    setLoading(false);
+  };
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] text-neutral-800 antialiased flex items-center justify-center px-6 pt-20 pb-12 relative overflow-hidden selection:bg-emerald-100">
+    <div className="min-h-screen relative flex items-center justify-center p-4 bg-gradient-to-br from-slate-50 via-emerald-50/30 to-teal-50/40 overflow-hidden">
       
-      {/* Ornamen Luxury Background Blur */}
-      <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-96 h-96 bg-teal-500/10 rounded-full blur-[120px] pointer-events-none" />
+      {/* Background Glows */}
+      <div className="absolute top-1/4 -left-20 w-96 h-96 bg-emerald-400/15 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-teal-400/15 rounded-full blur-[100px] pointer-events-none" />
 
-      {/* 🏛️ CARD LOGIN GLASSMORPHISM */}
-      <div className="w-full max-w-md bg-white/70 backdrop-blur-xl border border-white/60 p-8 md:p-10 rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.03)] relative z-10 space-y-6 animate-in fade-in zoom-in-95 duration-500">
+      {/* Tombol Kembali ke Beranda */}
+      <div className="absolute top-6 left-6 z-20">
+        <Link 
+          href="/" 
+          className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/70 backdrop-blur-md border border-slate-200/80 text-slate-700 hover:text-emerald-700 hover:bg-white transition text-xs font-bold shadow-sm"
+        >
+          <ArrowLeft size={14} /> Kembali ke Beranda
+        </Link>
+      </div>
+
+      {/* Card Container */}
+      <div className="relative z-10 max-w-md w-full bg-white/60 backdrop-blur-2xl backdrop-saturate-200 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.06)] p-8 border border-white/80">
         
-        {/* Header Logo & Title */}
-        <div className="text-center space-y-2">
-          <Link href="/" className="inline-flex items-center gap-2 mx-auto group">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center font-black text-white text-sm shadow-md">
-              BR
-            </div>
-          </Link>
-          <h1 className="text-2xl font-light font-serif tracking-tight text-neutral-900 pt-2">
-            Pemerintahan Desa
-          </h1>
-          <p className="text-[11px] text-neutral-400 font-light uppercase tracking-widest">
-            Bojong Rangkas Gatekeeper
-          </p>
-        </div>
-
-        {/* Notifikasi Eror dari Server Action */}
-        {state?.error && (
-          <div className="bg-rose-50 border border-rose-100 text-rose-600 p-3.5 rounded-2xl text-xs font-light flex items-start gap-2.5 animate-in fade-in slide-in-from-top-2 duration-300">
-            <ShieldAlert size={16} className="shrink-0 mt-0.5" />
-            <span>{state.error}</span>
+        {/* Toggle Tab (Hanya muncul jika tidak sedang di mode Lupa Password) */}
+        {!isForgotPassword && (
+          <div className="flex bg-slate-200/50 p-1 rounded-2xl mb-6 border border-slate-200/60">
+            <button
+              type="button"
+              className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition-all duration-300 ${!isSignUp ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+              onClick={() => { setIsSignUp(false); setMsg(null); }}
+            >
+              Sign In
+            </button>
+            <button
+              type="button"
+              className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition-all duration-300 ${isSignUp ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+              onClick={() => { setIsSignUp(true); setMsg(null); }}
+            >
+              Sign Up
+            </button>
           </div>
         )}
 
-        {/* Form Input Data */}
-        <form action={formAction} className="space-y-4">
-          
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block">Username / Email</label>
-            <div className="relative flex items-center">
-              <User size={14} className="absolute left-4 text-neutral-400" />
-              <input 
-                type="text" 
-                name="username"
-                required
-                disabled={isPending}
-                className="w-full bg-neutral-50/80 border border-neutral-200/60 rounded-full pl-11 pr-4 py-3 text-xs font-light outline-none focus:border-emerald-500 disabled:opacity-60 transition"
-                placeholder="Masukkan username WordPress..."
-              />
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <div className="flex justify-between items-center">
-              <label className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">Password</label>
-            </div>
-            <div className="relative flex items-center">
-              <Lock size={14} className="absolute left-4 text-neutral-400" />
-              <input 
-                type="password" 
-                name="password"
-                required
-                disabled={isPending}
-                className="w-full bg-neutral-50/80 border border-neutral-200/60 rounded-full pl-11 pr-4 py-3 text-xs font-light outline-none focus:border-emerald-500 disabled:opacity-60 transition"
-                placeholder="••••••••"
-              />
-            </div>
-          </div>
-
-          {/* Tombol Submit Trigger */}
-          <button 
-            type="submit"
-            disabled={isPending}
-            className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-600/70 text-white text-xs font-bold uppercase tracking-wider py-3.5 rounded-full transition shadow-md active:scale-[0.99] flex items-center justify-center gap-2"
-          >
-            {isPending ? (
-              <>
-                <Loader2 size={14} className="animate-spin" /> Mengautentikasi...
-              </>
-            ) : (
-              <>
-                Masuk ke Dasbor <Landmark size={12} />
-              </>
-            )}
-          </button>
-        </form>
-
-        {/* Footer info */}
-        <div className="text-center pt-2">
-          <Link href="/" className="text-[11px] text-neutral-400 hover:text-emerald-600 transition font-light">
-            ← Kembali ke Beranda Utama
-          </Link>
+        {/* Heading */}
+        <div className="text-center mb-6">
+          <h2 className="text-2xl font-extrabold text-slate-800 tracking-tight">
+            {isForgotPassword ? 'Reset Password' : isSignUp ? 'Buat Akun Baru' : 'Selamat Datang'}
+          </h2>
+          <p className="text-xs text-slate-500 mt-1">
+            {isForgotPassword 
+              ? 'Masukkan email terdaftar untuk pemulihan akun' 
+              : isSignUp 
+              ? 'Daftar untuk akses eksklusif Desa Wisata' 
+              : 'Masuk ke dalam panel akun terdaftar'}
+          </p>
         </div>
 
-      </div>
+        {/* Alert Notification */}
+        {msg && (
+          <div className={`p-3 rounded-xl text-xs mb-4 border font-medium ${msg.type === 'error' ? 'bg-rose-50 text-rose-600 border-rose-200' : 'bg-emerald-50 text-emerald-600 border-emerald-200'}`}>
+            {msg.text}
+          </div>
+        )}
 
+        {/* KONDISI TAMPILAN: FORM LUPA PASSWORD VS FORM UTAMA */}
+        {isForgotPassword ? (
+          <form onSubmit={handleForgotPasswordSubmit} className="space-y-4">
+            <div>
+              <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">Email Terdaftar</label>
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                  <Mail size={15} />
+                </span>
+                <input
+                  type="email"
+                  name="email"
+                  required
+                  placeholder="nama@email.com"
+                  className="w-full pl-10 pr-4 py-2.5 text-xs bg-white/80 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition shadow-sm"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-md transition disabled:opacity-50"
+            >
+              {loading ? 'Mengirim...' : 'Kirim Tautan Pemulihan'}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => { setIsForgotPassword(false); setMsg(null); }}
+              className="w-full text-center text-xs text-slate-500 hover:text-slate-800 font-medium mt-3 transition"
+            >
+              &larr; Kembali ke halaman Sign In
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">Username / Email</label>
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                  <UserIcon size={15} />
+                </span>
+                <input
+                  type="text"
+                  name="username"
+                  required
+                  placeholder="Masukkan username atau email"
+                  className="w-full pl-10 pr-4 py-2.5 text-xs bg-white/80 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition shadow-sm"
+                />
+              </div>
+            </div>
+
+            {isSignUp && (
+              <div>
+                <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">Email</label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                    <Mail size={15} />
+                  </span>
+                  <input
+                    type="email"
+                    name="email"
+                    required
+                    placeholder="nama@email.com"
+                    className="w-full pl-10 pr-4 py-2.5 text-xs bg-white/80 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition shadow-sm"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">Password</label>
+              <div className="relative">
+                {/* Ikon Gembok di Kiri */}
+                <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                  <Lock size={15} />
+                </span>
+
+                {/* Input Password dengan Dynamic Type (password / text) */}
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  name="password"
+                  required
+                  placeholder="••••••••"
+                  className="w-full pl-10 pr-10 py-2.5 text-xs bg-white/80 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition shadow-sm"
+                />
+
+                {/* Tombol Mata (Show/Hide Password) di Kanan */}
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 transition"
+                  title={showPassword ? "Sembunyikan password" : "Lihat password"}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+
+            {/* Tombol Lupa Password (Hanya muncul saat tab Sign In aktif) */}
+            {!isSignUp && (
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => { setIsForgotPassword(true); setMsg(null); }}
+                  className="text-[11px] text-emerald-600 hover:text-emerald-700 font-semibold transition"
+                >
+                  Lupa password?
+                </button>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3 mt-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-[0_10px_20px_rgba(16,185,129,0.25)] transition-all transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+            >
+              {loading ? 'Memproses...' : isSignUp ? 'Daftar Akun Baru' : 'Sign In'}
+            </button>
+          </form>
+        )}
+
+      </div>
     </div>
   );
 }

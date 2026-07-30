@@ -25,32 +25,6 @@ export default function HomeMarquee() {
 
   return (
     <div className="space-y-24 mt-24">
-      
-      {/* 📸 DOKUMENTASI KEGIATAN */}
-      <section className="space-y-6">
-        <div className="max-w-6xl mx-auto px-6 space-y-1">
-          <span className="text-[11px] font-bold text-emerald-600 uppercase tracking-widest block flex items-center gap-1">
-            <Images size={12}/> Galeri Rekam Jejak
-          </span>
-          <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight text-neutral-900 uppercase">Dokumentasi Kegiatan</h2>
-        </div>
-
-        <div className="w-full overflow-hidden relative py-2">
-          {/* Kelas animate-marquee memanggil variabel v4, hover:[animation-play-state:paused] buat ngerem pas di-hover */}
-          <div className="flex gap-5 w-max animate-marquee hover:[animation-play-state:paused] cursor-pointer">
-            {doubleDokumentasi.map((item, index) => (
-              <div key={`dok-${index}`} className="w-[70vw] sm:w-[35vw] lg:w-[23vw] shrink-0">
-                <div className="group bg-white rounded-2xl overflow-hidden border border-neutral-200/60 p-3 shadow-sm flex flex-col h-full space-y-3 transition duration-300 hover:border-emerald-500/30">
-                  <div className="relative aspect-[4/3] w-full bg-neutral-100 rounded-xl overflow-hidden">
-                    <Image src={item.img} alt={item.title} fill className="object-cover group-hover:scale-105 transition duration-700" />
-                  </div>
-                  <h4 className="text-xs font-bold text-neutral-700 uppercase tracking-tight px-1 line-clamp-1">{item.title}</h4>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* 💬 REVIEW USER */}
       <section className="space-y-6">

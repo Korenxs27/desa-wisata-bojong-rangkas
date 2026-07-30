@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer"; // 🚀 IMPORT DI SINI CUKK
+import Footer from "@/components/Footer"; 
 import "@/app/globals.css";
 
 export const metadata: Metadata = {
@@ -15,6 +15,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="id">
+      <head>
+        {/* 🚀 SCRIPT MIDTRANS SNAP WAJIB ADA DI GLOBAL HEAD LAYOUT */}
+        <script 
+          src="https://app.midtrans.com/snap/snap.js" 
+          data-client-key="Mid-client-q343rAbCQUljWRLn"
+          async
+        ></script>
+      </head>
       <body className="flex flex-col min-h-screen justify-between">
         <Navbar />
         <main className="flex-grow">{children}</main>

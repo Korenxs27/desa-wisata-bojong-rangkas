@@ -1,120 +1,124 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
-import { Images, Grid, Camera, Users, Landmark, Maximize2 } from "lucide-react";
+import { Loader2, Image as ImageIcon, Filter } from "lucide-react";
 
-export default function GalleryPage() {
-  const [activeFilter, setActiveFilter] = useState("all");
+export default function UserGalleryPage() {
+  const [gallery, setGallery] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState("Semua");
+  const [categories, setCategories] = useState<string[]>([]);
 
-  // Kategori Filter
-  const filters = [
-    { id: "all", name: "Semua", icon: <Grid size={12} /> },
-    { id: "alam", name: "Pesona Alam", icon: <Camera size={12} /> },
-    { id: "kegiatan", name: "Kegiatan Warga", icon: <Users size={12} /> },
-    { id: "fasilitas", name: "Fasilitas Desa", icon: <Landmark size={12} /> },
-  ];
+  const apiEndpoint = "https://desa-wisata-bojongrangkas.biznityhub.com/wp-json/wc-bridge/v1/gallery-items";
 
-  // Data Item Galeri Mockup Premium
-  const galleryItems = [
-    { id: 1, category: "alam", title: "Sunrise Bukit Rangkas", img: "/images/kapur.jpg" },
-    { id: 2, category: "kegiatan", title: "Workshop Anyaman Tas UMKM", img: "/images/puncak batu roti.jpg" },
-    { id: 3, category: "fasilitas", title: "Pusat Informasi Edukasi", img: "/images/wisata.jpg" },
-    { id: 4, category: "alam", title: "Aliran Sungai Kelok Bojong", img: "/images/tas.png" },
-    { id: 5, category: "kegiatan", title: "Festival Budaya Tahunan", img: "/images/roti.png" },
-    { id: 6, category: "fasilitas", title: "Homestay Asri Vibe Kaca", img: "/images/homestay.jpg" },
-    { id: 7, category: "alam", title: "Agrowisata Kebun Kopi", img: "/images/homestay sans.jpg" },
-    { id: 8, category: "kegiatan", title: "Rapat Karang Taruna Desa", img: "/images/homestay joglo.jpg" },
-    { id: 9, category: "fasilitas", title: "Akses Jalan Utama Terintegrasi", img: "/images/kapur.jpg" },
-  ];
+  useEffect(() => {
+    const fetchGallery = async () => {
+      try {
+        const res = await fetch(apiEndpoint, { cache: "no-store" });
+        const data = await res.json();
+        if (data.success && Array.isArray(data.gallery)) {
+          setGallery(data.gallery);
+          
+          // Ekstrak kategori unik dari data galeri
+          const uniqueCategories = ["Semua", ...Array.from(new Set(data.gallery.map((item: any) => item.category)))];
+          setCategories(uniqueCategories as string[]);
+        }
+      } catch (err) {
+        console.error("Gagal memuat galeri:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const filteredItems = activeFilter === "all" 
-    ? galleryItems 
-    : galleryItems.filter(item => item.category === activeFilter);
+    fetchGallery();
+  }, []);
+
+  // Filter galeri berdasarkan kategori yang dipilih
+  const filteredGallery = selectedCategory === "Semua" 
+    ? gallery 
+    : gallery.filter((item) => item.category === selectedCategory);
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] text-neutral-800 antialiased pb-24 pt-32 selection:bg-emerald-100">
-      
-      {/* 🌟 1. HERO TITLE BLOCK */}
-      <div className="max-w-7xl mx-auto px-6 pb-8 text-center space-y-4">
-        <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-600 bg-emerald-50/60 px-4 py-1.5 rounded-full border border-emerald-100 inline-flex items-center gap-1.5">
-          <Images size={12} /> Galeri Visual Desa
-        </span>
-        <h1 className="text-4xl md:text-5xl font-light font-serif tracking-tight text-neutral-900">
-          Dokumentasi Keindahan
-        </h1>
-        <p className="max-w-md mx-auto text-xs text-neutral-400 font-light leading-relaxed">
-          Eksplorasi kumpulan potret lensa keindahan alam, aktivitas kearifan lokal, dan infrastruktur modern Bojong Rangkas.
-        </p>
-      </div>
-
-      {/* 🧭 2. FILTER TABS (Glassmorphism Pill) */}
-      <div className="max-w-5xl mx-auto px-6 mb-12 flex justify-center">
-        <div className="flex flex-wrap items-center justify-center gap-1.5 bg-white/70 backdrop-blur-md px-2 py-1.5 rounded-full border border-neutral-200/40 shadow-[0_4px_20px_rgba(0,0,0,0.01)]">
-          {filters.map((filter) => (
-            <button
-              key={filter.id}
-              onClick={() => setActiveFilter(filter.id)}
-              className={`text-[11px] font-bold uppercase tracking-wider px-4 py-2 rounded-full flex items-center gap-1.5 transition duration-300 ${
-                activeFilter === filter.id
-                  ? "bg-emerald-600 text-white shadow-sm"
-                  : "text-neutral-500 hover:text-neutral-800 hover:bg-neutral-100/60"
-              }`}
-            >
-              {filter.icon}
-              {filter.name}
-            </button>
-          ))}
+    <div className="min-h-screen bg-slate-50 pt-32 pb-20 px-4 sm:px-6 font-sans text-slate-800">
+      <div className="max-w-7xl mx-auto space-y-10">
+        
+        {/* Header Title */}
+        <div className="text-center max-w-2xl mx-auto space-y-3">
+          <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-bold uppercase tracking-wider">
+            Dokumentasi Desa Wisata
+          </span>
+          <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
+            Galeri & Momen Kegiatan
+          </h1>
+          <p className="text-sm text-slate-600">
+            Jelajahi berbagai potret keindahan alam, aktivitas warga, homestay, serta ragam UMKM di Desa Wisata Bojong Rangkas.
+          </p>
         </div>
-      </div>
 
-      {/* 📸 3. MASONRY/GRID ADVANCED GALLERY */}
-      <div className="max-w-6xl mx-auto px-6">
-        {filteredItems.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredItems.map((item) => (
-              <div
-                key={item.id}
-                className="group bg-white/60 backdrop-blur-sm rounded-2xl overflow-hidden border border-neutral-200/40 p-3 shadow-[0_8px_30px_rgba(0,0,0,0.005)] hover:shadow-[0_15px_30px_rgba(0,0,0,0.02)] hover:border-emerald-500/20 transition duration-500 flex flex-col h-full relative"
+        {/* Filter Kategori Buttons */}
+        {!loading && categories.length > 1 && (
+          <div className="flex items-center justify-center flex-wrap gap-2 pt-2">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                className={`px-4 py-2 rounded-full text-xs font-bold transition-all duration-300 cursor-pointer shadow-sm ${
+                  selectedCategory === cat
+                    ? "bg-emerald-600 text-white shadow-emerald-600/20 shadow-md scale-105"
+                    : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
+                }`}
               >
-                {/* Image Wrap */}
-                <div className="relative aspect-[4/3] w-full bg-neutral-100 rounded-xl overflow-hidden">
-                  <Image
-                    src={item.img}
-                    alt={item.title}
-                    fill
-                    sizes="(max-w-7xl) 33vw"
-                    className="object-cover group-hover:scale-105 transition duration-700 ease-out"
+                {cat}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Gallery Content Grid */}
+        {loading ? (
+          <div className="text-center py-20 text-slate-400 text-sm flex items-center justify-center gap-2">
+            <Loader2 className="animate-spin text-emerald-600" size={20} /> Memuat galeri desa...
+          </div>
+        ) : filteredGallery.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {filteredGallery.map((item) => (
+              <div 
+                key={item.id} 
+                className="bg-white border border-slate-200/80 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 flex flex-col justify-between group"
+              >
+                <div className="relative aspect-[4/3] w-full bg-slate-100 overflow-hidden">
+                  <Image 
+                    src={item.image} 
+                    alt={item.title} 
+                    fill 
+                    className="object-cover group-hover:scale-110 transition duration-700" 
                   />
-                  {/* Glassy Hover Overlay */}
-                  <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition duration-500 flex items-center justify-center z-10">
-                    <div className="p-2.5 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-white transform translate-y-2 group-hover:translate-y-0 transition duration-500">
-                      <Maximize2 size={14} />
-                    </div>
-                  </div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  <span className="absolute top-3 left-3 bg-white/90 backdrop-blur-md text-slate-900 text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">
+                    {item.category}
+                  </span>
                 </div>
 
-                {/* Info Text */}
-                <div className="pt-4 pb-2 px-1 flex flex-col justify-between flex-grow">
-                  <div className="space-y-1">
-                    <span className="text-[9px] font-black tracking-widest text-emerald-600 uppercase block">
-                      {item.category}
-                    </span>
-                    <h3 className="text-xs font-bold text-neutral-800 tracking-tight line-clamp-1 uppercase pt-0.5">
-                      {item.title}
-                    </h3>
-                  </div>
+                <div className="p-5 space-y-1.5 bg-white">
+                  <h3 className="text-sm font-extrabold text-slate-900 uppercase tracking-wide truncate">
+                    {item.title}
+                  </h3>
+                  <p className="text-[11px] text-slate-400 font-medium">
+                    🕒 {item.date}
+                  </p>
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <div className="text-center py-20 bg-white/40 backdrop-blur-md rounded-3xl border border-neutral-200/40">
-            <p className="text-xs text-neutral-400 italic font-light">Belum ada dokumentasi visual pada kategori ini cukk.</p>
+          <div className="text-center py-20 bg-white rounded-3xl border border-slate-200/80 max-w-md mx-auto space-y-3">
+            <ImageIcon className="mx-auto text-slate-300" size={40} />
+            <p className="text-sm text-slate-500 font-medium">Tidak ada foto dalam kategori &quot;{selectedCategory}&quot;.</p>
           </div>
         )}
-      </div>
 
+      </div>
     </div>
   );
 }

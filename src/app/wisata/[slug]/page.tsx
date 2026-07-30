@@ -1,7 +1,7 @@
 import { ObjekWisata } from "@/types/wisata";
 import Image from "next/image";
-import BackButton from "@/components/BackButton"; // 🚀 Impor BackButton Pintar
-import { Info, Sparkles, MapPin, Clock, Ticket } from "lucide-react";
+import BackButton from "@/components/BackButton"; 
+import { Info, Sparkles, MapPin, Clock, Ticket, CircleCheck, CircleX } from "lucide-react";
 
 export default async function DetailWisataPage({ params }: { params: any }) {
   const resolvedParams = await params;
@@ -24,8 +24,18 @@ export default async function DetailWisataPage({ params }: { params: any }) {
   const mediaEmbed = wisata._embedded?.["wp:featuredmedia"]?.[0];
   const imageUrl = mediaEmbed?.source_url || "/placeholder-travel.jpg";
 
-  const rawPrice = wisata.acf?.harga_tiket;
+  // 🔍 PEMBACA GANDA ACF (Aman dari error TypeScript & mendukung data baru/lama)
+  const acf = (wisata as any).acf || {};
+
+  const rawPrice = acf.harga ?? acf.harga_tiket ?? 0;
   const cleanPrice = Number(rawPrice);
+
+  const rawStatus = acf.status_buka || acf.status_operasional || "Buka";
+  const statusValue = String(rawStatus).trim();
+  const isOpen = statusValue.toLowerCase() === "buka";
+
+  const jamBukaText = acf.durasi || acf.jam_operasional || "08:00 - 17:00 WIB";
+  const mapsData = acf.lokasi || acf.lokasi_maps || "";
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] text-neutral-800 antialiased pb-20 selection:bg-emerald-100">
@@ -43,7 +53,7 @@ export default async function DetailWisataPage({ params }: { params: any }) {
         
         <div className="absolute bottom-8 left-0 right-0 z-20 max-w-6xl mx-auto px-6 space-y-3">
           <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-600 bg-white/90 backdrop-blur-md px-3 py-1 rounded-xl border border-white/40 shadow-sm">
-            <Sparkles size={10} /> {wisata.acf?.kategori_wisata || "Jelajah Alam"}
+            <Sparkles size={10} /> {acf.kategori_wisata || "Jelajah Alam"}
           </span>
           <h1 className="text-3xl md:text-4xl font-light font-serif tracking-tight text-white drop-shadow-sm">
             {wisata.title.rendered}
@@ -57,7 +67,6 @@ export default async function DetailWisataPage({ params }: { params: any }) {
         {/* Kolom Kiri: Profil & Deskripsi */}
         <div className="lg:col-span-2 space-y-4">
           
-          {/* 🚀 TOMBOL KEMBALI PINTAR NATIVE */}
           <div className="flex justify-start">
             <BackButton text="Kembali" />
           </div>
@@ -91,8 +100,9 @@ export default async function DetailWisataPage({ params }: { params: any }) {
             <div className="space-y-3 text-xs font-light text-neutral-600">
               <div className="flex items-center gap-2.5">
                 <Clock size={14} className="text-emerald-600 shrink-0" />
-                <span>Jam Buka: {wisata.acf?.jam_operasional || "08:00 - 17:00 WIB"}</span>
+                <span>Jam Buka: {jamBukaText}</span>
               </div>
+              
               <div className="flex items-center gap-2.5">
                 <Ticket size={14} className="text-emerald-600 shrink-0" />
                 <span>
@@ -101,36 +111,52 @@ export default async function DetailWisataPage({ params }: { params: any }) {
                     : "Gratis"}
                 </span>
               </div>
+
               <div className="flex items-center gap-2.5">
-                <span className={`w-2 h-2 rounded-full ${wisata.acf?.status_operasional === 'Buka' ? 'bg-emerald-500' : 'bg-rose-400'}`} />
-                <span>Status Kondisi: <strong>{wisata.acf?.status_operasional || "Buka"}</strong></span>
+                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                  isOpen ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"
+                }`}>
+                  {isOpen ? <CircleCheck size={10} /> : <CircleX size={10} />}
+                  Status: {statusValue}
+                </span>
               </div>
             </div>
           </div>
 
-          {wisata.acf?.lokasi_maps && String(wisata.acf.lokasi_maps).trim() !== "" && (
+          {/* Render Peta Navigasi */}
+          {/* Render Peta Navigasi */}
+          {String(mapsData).trim() !== "" && (
             <div className="bg-white/80 backdrop-blur-md border border-neutral-200/60 p-6 rounded-3xl shadow-[0_20px_45px_rgba(0,0,0,0.02)] space-y-4">
               <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-900 flex items-center gap-1.5">
                 <MapPin size={14} className="text-emerald-600" /> Peta Navigasi
               </h3>
               
-              {String(wisata.acf.lokasi_maps).includes("<iframe") ? (
+              {String(mapsData).includes("<iframe") ? (
                 <div 
                   className="w-full h-48 rounded-2xl overflow-hidden border border-neutral-200/60 
                   [&>iframe]:w-full [&>iframe]:h-full [&>iframe]:border-0"
-                  dangerouslySetInnerHTML={{ __html: wisata.acf.lokasi_maps }}
+                  dangerouslySetInnerHTML={{ __html: mapsData }}
                 />
               ) : (
-                <div className="w-full h-48 rounded-2xl overflow-hidden bg-neutral-100 border border-neutral-200/60 relative">
+                <div className="w-full h-48 rounded-2xl overflow-hidden bg-gradient-to-br from-emerald-500 to-teal-700 border border-neutral-200/60 relative p-6 flex flex-col justify-between text-white shadow-inner">
+                  <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]" />
+                  <div className="relative z-10 flex items-center gap-2">
+                    <span className="p-2 bg-white/20 backdrop-blur-md rounded-xl">
+                      <MapPin size={18} className="text-white" />
+                    </span>
+                    <div>
+                      <p className="text-xs font-bold">Lokasi Wisata Tersedia</p>
+                      <p className="text-[10px] text-emerald-100 font-light">Navigasi langsung via Google Maps</p>
+                    </div>
+                  </div>
+
                   <a 
-                    href={String(wisata.acf.lokasi_maps).trim()} 
+                    href={String(mapsData).trim()} 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="absolute inset-0 flex flex-col items-center justify-center bg-neutral-50/50 hover:bg-emerald-50/30 transition text-xs font-semibold text-neutral-800 gap-1 text-center p-4"
+                    className="relative z-15 w-full py-2.5 bg-white text-emerald-800 font-bold text-xs rounded-xl shadow-md hover:bg-emerald-50 transition text-center block"
                   >
-                    <MapPin size={20} className="text-rose-500 animate-bounce" />
-                    Buka Rute di Google Maps
-                    <span className="text-[10px] text-neutral-400 font-normal block">Klik untuk navigasi langsung</span>
+                    Buka Rute di Google Maps ↗
                   </a>
                 </div>
               )}

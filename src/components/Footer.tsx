@@ -9,7 +9,7 @@ export default function Footer() {
   const pathname = usePathname();
 
   // 🚀 PROTEKSI OTOMATIS: Jika sedang di halaman login, footer tersembunyi total
-  if (pathname === "/login") {
+ if (pathname === "/login" || pathname.startsWith("/admin")) {
     return null;
   }
 

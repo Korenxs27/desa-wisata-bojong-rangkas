@@ -1,10 +1,9 @@
 import Link from "next/link";
 import Image from "next/image";
-import { MapPin, ArrowRight, Compass, Ticket, Info } from "lucide-react";
+import { Compass, ArrowRight, CircleCheck, CircleX } from "lucide-react";
 import { ObjekWisata } from "@/types/wisata";
 
 export default async function KatalogWisataPage() {
-  // Ambil data dari Custom Post Type kustom bernama 'wisata'
   const res = await fetch("https://desa-wisata-bojongrangkas.biznityhub.com/wp-json/wp/v2/wisata?_embed", {
     cache: "no-store",
   });
@@ -14,7 +13,7 @@ export default async function KatalogWisataPage() {
     <div className="min-h-screen bg-[#FAFAFA] text-neutral-800 antialiased py-16 pt-32 px-4 sm:px-6 lg:px-8 selection:bg-emerald-100">
       <div className="max-w-6xl mx-auto space-y-12">
         
-        {/* Header Luxury Light */}
+        {/* Header */}
         <div className="space-y-4 text-center md:text-left">
           <span className="inline-flex items-center text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-600 bg-emerald-50/60 px-4 py-1.5 rounded-full border border-emerald-100">
             Destinasi Desa
@@ -38,16 +37,22 @@ export default async function KatalogWisataPage() {
               const mediaEmbed = wisata._embedded?.["wp:featuredmedia"]?.[0];
               const imageUrl = mediaEmbed?.source_url || "/placeholder-travel.jpg";
 
-              // SINKRONISASI VARIABEL AGAR TIDAK MERAH
-              const rawPrice = wisata.acf?.harga_tiket;
+              // 🔍 PEMBACA GANDA ACF (Aman dari error TypeScript)
+              const acf = (wisata as any).acf || {};
+
+              const rawPrice = acf.harga ?? acf.harga_tiket ?? 0;
               const cleanPrice = Number(rawPrice);
+
+              const rawStatus = acf.status_buka || acf.status_operasional || "Buka";
+              const statusValue = String(rawStatus).trim();
+              const isOpen = statusValue.toLowerCase() === "buka";
 
               return (
                 <div 
                   key={wisata.id} 
                   className="group bg-white/70 backdrop-blur-md rounded-[2rem] border border-white/80 overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.01)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.025)] transition duration-500 flex flex-col h-full relative hover:-translate-y-1"
                 >
-                  {/* Foto Utama Tempat Wisata */}
+                  {/* Foto Utama */}
                   <div className="relative aspect-[4/3] w-full overflow-hidden bg-neutral-50 border-b border-neutral-100/40">
                     <Image
                       src={imageUrl}
@@ -57,16 +62,20 @@ export default async function KatalogWisataPage() {
                       className="object-cover group-hover:scale-103 transition duration-700 ease-out"
                     />
                     <div className="absolute top-4 left-4 z-10 bg-white/90 backdrop-blur-md border border-white/60 px-3 py-1 rounded-xl text-[10px] font-bold tracking-wider uppercase text-emerald-600 shadow-sm flex items-center gap-1">
-                      <Compass size={10} /> {wisata.acf?.kategori_wisata || "Alam"}
+                      <Compass size={10} /> {acf.kategori_wisata || "Wisata Alam"}
                     </div>
                   </div>
 
                   {/* Konten */}
                   <div className="p-6 flex flex-col flex-grow space-y-5">
                     <div className="space-y-2 flex-grow">
-                      <div className="flex items-center gap-2 text-[10px] text-neutral-400 font-medium">
-                        <span className={`inline-block w-2 h-2 rounded-full ${wisata.acf?.status_operasional === 'Buka' ? 'bg-emerald-500' : 'bg-rose-400'}`} />
-                        Status: {wisata.acf?.status_operasional || 'Buka'}
+                      <div className="flex items-center gap-1.5 text-[11px] font-medium">
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                          isOpen ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"
+                        }`}>
+                          {isOpen ? <CircleCheck size={10} /> : <CircleX size={10} />}
+                          Status: {statusValue}
+                        </span>
                       </div>
                       
                       <h2 className="font-medium text-base text-neutral-900 tracking-tight group-hover:text-emerald-600 transition truncate pt-0.5">

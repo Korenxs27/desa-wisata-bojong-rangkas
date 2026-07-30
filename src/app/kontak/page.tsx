@@ -1,21 +1,51 @@
 "use client";
 
 import { useState } from "react";
-import { Mail, Phone, MapPin, Send, MessageSquare } from "lucide-react";
+import { Mail, Phone, MapPin, Send, MessageSquare, Loader2 } from "lucide-react";
 
 export default function KontakPage() {
   const [formData, setFormData] = useState({ name: "", email: "", message: "" });
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const wpUrl = process.env.NEXT_PUBLIC_WORDPRESS_URL || "https://desa-wisata-bojongrangkas.biznityhub.com/wp-json";
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert(`Pesan dari ${formData.name} berhasil terkirim cukk! (Fungsi backend bisa lu hubungkan ke API WordPress nanti)`);
-    setFormData({ name: "", email: "", message: "" });
+    setLoading(true);
+
+    try {
+      const res = await fetch(`${wpUrl}/wc-bridge/v1/send-message`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          nama: formData.name,
+          email: formData.email,
+          pesan: formData.message,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        alert("Pesan kamu berhasil dikirim!");
+        setFormData({ name: "", email: "", message: "" });
+      } else {
+        alert("Gagal mengirim pesan: " + (data.message || "Terjadi kesalahan."));
+      }
+    } catch (err) {
+      console.error("Error submitting contact form:", err);
+      alert("Koneksi ke server WordPress gagal. Silakan coba beberapa saat lagi.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] text-neutral-800 antialiased pb-24 pt-32 selection:bg-emerald-100">
       
-      {/* 🌟 1. HERO TITLE BLOCK */}
+      {/* 1. HERO TITLE BLOCK */}
       <div className="max-w-7xl mx-auto px-6 pb-12 text-center space-y-4">
         <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-600 bg-emerald-50/60 px-4 py-1.5 rounded-full border border-emerald-100 inline-flex items-center gap-1.5">
           <MessageSquare size={12} /> Layanan Informasi
@@ -28,7 +58,7 @@ export default function KontakPage() {
         </p>
       </div>
 
-      {/* 🗺️ 2. MAIN CONTACT & MAPS GRID */}
+      {/* 2. MAIN CONTACT & MAPS GRID */}
       <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
         {/* LEFT COLUMN: FORM & INFO DETAILS (5/12) */}
@@ -48,7 +78,7 @@ export default function KontakPage() {
               </div>
               <div className="flex gap-3 items-center">
                 <Mail size={16} className="text-emerald-600 shrink-0" />
-                <span>info@bojongrangkas.desa.id</span>
+                <span>desawisatabojongrangkas@gmail.com</span>
               </div>
             </div>
           </div>
@@ -63,7 +93,7 @@ export default function KontakPage() {
                 type="text" 
                 required
                 className="w-full bg-neutral-50 border border-neutral-200/60 rounded-xl px-3 py-2.5 text-xs font-light outline-none focus:border-emerald-500 transition"
-                placeholder="Masukkan nama lu cukk..."
+                placeholder="Masukkan nama Anda"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               />
@@ -87,7 +117,7 @@ export default function KontakPage() {
                 rows={4}
                 required
                 className="w-full bg-neutral-50 border border-neutral-200/60 rounded-xl px-3 py-2.5 text-xs font-light outline-none focus:border-emerald-500 transition resize-none"
-                placeholder="Tulis pertanyaan atau aspirasi lu di sini..."
+                placeholder="Tulis pesan Anda di sini..."
                 value={formData.message}
                 onChange={(e) => setFormData({ ...formData, message: e.target.value })}
               />
@@ -95,9 +125,18 @@ export default function KontakPage() {
 
             <button 
               type="submit"
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold uppercase tracking-wider py-3 rounded-xl transition shadow-sm flex items-center justify-center gap-2"
+              disabled={loading}
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold uppercase tracking-wider py-3 rounded-xl transition shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
             >
-              Kirim Aspirasi <Send size={12} />
+              {loading ? (
+                <>
+                  <Loader2 size={14} className="animate-spin" /> Mengirim Pesan...
+                </>
+              ) : (
+                <>
+                  Kirim Aspirasi <Send size={12} />
+                </>
+              )}
             </button>
           </form>
         </div>
