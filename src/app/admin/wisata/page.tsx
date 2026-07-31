@@ -47,13 +47,18 @@ export default function AdminWisataPage() {
     
     const acf = (item as any).acf || {};
     
-    // 🔍 Ambil harga dengan aman
+    // Ambil harga
     const valHarga = acf.harga ?? acf.harga_tiket ?? (item as any).harga ?? "";
     setHarga(String(valHarga));
 
-    // 🔍 Ambil lokasi maps dari semua variasi key ACF / Post Meta
-    const valLokasi = acf.lokasi ?? acf.lokasi_maps ?? acf.google_maps ?? (item as any).lokasi ?? "";
-    setLokasi(String(valLokasi));
+    // 🔍 Ambil lokasi maps & decode entitas HTML agar iframe tidak terpotong/hilang
+    const rawLokasi = acf.lokasi ?? acf.lokasi_maps ?? acf.google_maps ?? (item as any).lokasi ?? "";
+    const decodedLokasi = String(rawLokasi)
+      .replace(/&quot;/g, '"')
+      .replace(/&#039;/g, "'")
+      .replace(/&amp;/g, "&");
+      
+    setLokasi(decodedLokasi);
 
     // Ambil durasi, status, dan kategori
     setDurasi(acf.durasi ?? acf.jam_operasional ?? "08:00 - 17:00 WIB");
@@ -131,7 +136,7 @@ export default function AdminWisataPage() {
       const data = await res.json();
 
       if (res.ok && data.success) {
-        alert("Objek Wisata berhasil dihapus secara permanen!");
+        alert("Objek Wisata berhasil dihapus!");
         setWisataList((prev) => prev.filter((item) => item.id !== id));
       } else {
         alert(`Gagal Menghapus: ${data.message || "Periksa koneksi backend."}`);

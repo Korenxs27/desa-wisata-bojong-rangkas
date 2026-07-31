@@ -1,165 +1,165 @@
-import Image from "next/image";
-import { Shield, Target, Landmark, Users, MapPin, Award, UserCheck } from "lucide-react";
+"use client";
 
-export default function ProfilDesaPage() {
-  // 🚀 DATA STRUKTUR ASLI POKDARWIS BERDASARKAN DATA EXCEL LU CUKK
-  const strukturPokdarwis = [
-    { 
-      jabatan: "Ketua Pokdarwis", 
-      nama: "Anita",
-      deskripsi: "Penanggung jawab utama dalam merumuskan strategi, memimpin koordinasi pengembangan potensi wisata, serta memperluas kemitraan Desa Wisata Bojong Rangkas." 
-    },
-    { 
-      jabatan: "Wakil Ketua Pokdarwis", 
-      nama: "Iwan Firmansyah",
-      deskripsi: "Pendamping ketua yang bertanggung jawab mengawasi operasional harian lapangan, pengelolaan kluster destinasi, serta sinkronisasi program kerja warga." 
-    }
-  ];
+import { useEffect, useState } from "react";
+import Image from "next/image";
+import { Loader2, Landmark, Users } from "lucide-react";
+
+export default function UserProfilPage() {
+  const [profil, setProfil] = useState({
+    sejarah: "",
+    visi: "",
+    misi: "",
+    struktur: [],
+    statistik: [],
+    image_sejarah_url: ""
+  });
+  const [loading, setLoading] = useState(true);
+
+  const apiEndpoint = "https://desa-wisata-bojongrangkas.biznityhub.com/wp-json/wc-bridge/v1/profil-desa";
+
+  useEffect(() => {
+    const fetchProfil = async () => {
+      try {
+        const res = await fetch(`${apiEndpoint}?t=${Date.now()}`, { cache: "no-store" });
+        const data = await res.json();
+        
+        if (data && data.success && data.profil) {
+          setProfil({
+            sejarah: data.profil.sejarah || "",
+            visi: data.profil.visi || "",
+            misi: data.profil.misi || "",
+            struktur: Array.isArray(data.profil.struktur) ? data.profil.struktur : [],
+            statistik: Array.isArray(data.profil.statistik) ? data.profil.statistik : [],
+            image_sejarah_url: data.profil.image_sejarah_url || ""
+          });
+        }
+      } catch (err) {
+        console.error("Gagal memuat profil user:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfil();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <Loader2 className="animate-spin text-emerald-600" size={32} />
+        <span className="ml-2 text-xs text-slate-500 font-medium tracking-wider">Memuat profil desa...</span>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] text-neutral-800 antialiased pb-24 pt-32 selection:bg-emerald-100">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-teal-50/40 pt-36 pb-24 px-4 sm:px-6 font-sans text-slate-800 relative overflow-hidden">
       
-      {/* 🌟 1. HERO TITLE BLOCK */}
-      <div className="max-w-7xl mx-auto px-6 pb-12 text-center space-y-4">
-        <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-600 bg-emerald-50/60 px-4 py-1.5 rounded-full border border-emerald-100 inline-flex items-center gap-1.5">
-          <Landmark size={12} /> Kelembagaan Resmi Desa
-        </span>
-        <h1 className="text-4xl md:text-5xl font-light font-serif tracking-tight text-neutral-900">
-          Profil Bojong Rangkas
-        </h1>
-        <p className="max-w-md mx-auto text-xs text-neutral-400 font-light leading-relaxed">
-          Mengenal lebih dekat lembar sejarah, visi strategis, serta jajaran Kelompok Sadar Wisata (Pokdarwis) Desa Wisata Bojong Rangkas.
-        </p>
-      </div>
+      {/* Background Soft Glow Effects (Luxury Touch) */}
+      <div className="absolute top-0 left-1/4 w-96 h-96 bg-emerald-300/20 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="absolute bottom-10 right-1/4 w-96 h-96 bg-teal-300/20 rounded-full blur-3xl pointer-events-none"></div>
 
-      {/* 🏛️ 2. SEJARAH SINGKAT (Luxury Card Banner) */}
-      <div className="max-w-5xl mx-auto px-6 mb-16">
-        <div className="bg-white border border-neutral-200/60 rounded-3xl p-8 md:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.01)] flex flex-col md:flex-row gap-8 items-center">
-          <div className="w-full md:w-2/5 aspect-[4/3] bg-neutral-100 rounded-2xl overflow-hidden relative border border-neutral-200/30">
-            <Image 
-              src="/images/bg.png" 
-              alt="Sejarah Desa" 
-              fill 
-              className="object-cover"
-            />
-          </div>
-          <div className="w-full md:w-3/5 space-y-4">
-            <div className="flex items-center gap-2 text-emerald-600 font-bold text-xs uppercase tracking-wider">
-              <Award size={14} /> Selayang Pandang
-            </div>
-            <h2 className="text-xl md:text-2xl font-black uppercase tracking-tight text-neutral-900">
-              Sejarah Singkat Desa
-            </h2>
-            <p className="text-xs text-neutral-500 font-light leading-relaxed text-justify">
-              Desa Bojong Rangkas merupakan wilayah yang kaya akan nilai historis dan pelestarian budaya lokal. Nama Bojong Rangkas diambil dari karakteristik geografis alaminya, yaitu 'Bojong' yang berarti tanjungan atau kelokan sungai, serta pohon 'Rangkas' yang dahulunya tumbuh subur menaungi kawasan ini. Seiring berjalannya waktu, desa ini bertransformasi dari kawasan agraris tradisional menjadi ekosistem desa wisata terpadu yang maju dan mandiri.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* 🎯 3. VISI & MISI SECTION */}
-      <div className="max-w-5xl mx-auto px-6 mb-20 grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Visi */}
-        <div className="bg-[#0B1220] text-white rounded-3xl p-8 shadow-xl border border-white/[0.05] space-y-4 flex flex-col justify-between">
-          <div className="space-y-3">
-            <div className="text-emerald-400 font-bold text-[10px] uppercase tracking-widest flex items-center gap-1">
-              <Shield size={12} /> Pilar Arah Kebijakan
-            </div>
-            <h3 className="text-xl font-black uppercase tracking-wide">Visi Utama Desa</h3>
-          </div>
-          <p className="text-sm font-medium italic text-neutral-200 border-l-2 border-emerald-500 pl-4 py-2 leading-relaxed">
-            "Mewujudkan Desa Bojong Rangkas yang Maju, Mandiri, Sejahtera, dan Berkelanjutan Berbasis Potensi Wisata Alam serta Ekonomi Kreatif Melalui Tata Kelola Pemerintahan yang Akuntabel."
+      <div className="max-w-6xl mx-auto space-y-20 relative z-10">
+        
+        {/* Header Title */}
+        <div className="text-center space-y-4">
+          <h1 className="text-4xl sm:text-5xl font-black text-slate-900 tracking-tight">Profil Desa Bojong Rangkas</h1>
+          <p className="text-xs sm:text-sm text-slate-600 max-w-lg mx-auto font-light leading-relaxed">
+            Mengenal lebih dekat lembar sejarah, visi strategis, serta jajaran Kelompok Sadar Wisata (Pokdarwis) Desa Wisata Bojong Rangkas.
           </p>
-          <div className="text-[11px] text-neutral-400 font-light">Target Pembangunan Jangka Panjang</div>
         </div>
 
-        {/* Misi */}
-        <div className="bg-white border border-neutral-200/60 rounded-3xl p-8 shadow-sm space-y-5">
-          <div className="space-y-1">
-            <div className="text-emerald-600 font-bold text-[10px] uppercase tracking-widest flex items-center gap-1">
-              <Target size={12} /> Langkah Taktis
-            </div>
-            <h3 className="text-xl font-black uppercase tracking-wide text-neutral-900">Misi Kerja Desa</h3>
-          </div>
-          <ul className="space-y-3.5 text-xs text-neutral-500 font-light leading-relaxed">
-            <li className="flex gap-2.5 items-start">
-              <span className="w-5 h-5 rounded-md bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">1</span>
-              <span>Meningkatkan mutu pelayanan publik berbasis teknologi digital yang cepat, tanggap, dan transparan.</span>
-            </li>
-            <li className="flex gap-2.5 items-start">
-              <span className="w-5 h-5 rounded-md bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">2</span>
-              <span>Mengoptimalkan tata kelola potensi destinasi wisata alam serta budidaya lokal terpadu.</span>
-            </li>
-            <li className="flex gap-2.5 items-start">
-              <span className="w-5 h-5 rounded-md bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">3</span>
-              <span>Mendorong pertumbuhan komoditas UMKM lokal menuju pasar digital berskala nasional.</span>
-            </li>
-            <li className="flex gap-2.5 items-start">
-              <span className="w-5 h-5 rounded-md bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">4</span>
-              <span>Membangun sarana dan prasarana umum desa yang ramah lingkungan, aman, dan nyaman untuk warga.</span>
-            </li>
-          </ul>
-        </div>
-      </div>
-
-      {/* 👔 4. STRUKTUR ORGANISASI POKDARWIS (Data Valid Excel Lu) */}
-      <div className="max-w-4xl mx-auto px-6 mb-20 space-y-8">
-        <div className="text-center space-y-1">
-          <div className="text-emerald-600 font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-1">
-            <Users size={12} /> Jajaran Pengelola Utama
-          </div>
-          <h3 className="text-2xl font-black uppercase tracking-tight text-neutral-900">Struktur Organisasi Pokdarwis</h3>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 max-w-2xl mx-auto">
-          {strukturPokdarwis.map((staff, i) => (
-            <div 
-              key={i} 
-              className="bg-white border border-neutral-200/60 rounded-3xl p-6 shadow-[0_8px_30px_rgba(0,0,0,0.005)] hover:border-emerald-500/30 transition duration-300 flex flex-col items-center text-center space-y-4 group"
-            >
-              {/* Profile Avatar Frame Luxury */}
-              <div className="w-16 h-16 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shadow-inner group-hover:bg-emerald-600 group-hover:text-white transition duration-500">
-                <UserCheck size={26} />
+        {/* Sejarah Singkat (Glassy Clean Container) */}
+        {profil.sejarah && (
+          <div className="bg-white/70 backdrop-blur-xl p-8 sm:p-12 rounded-[2.5rem] border border-white/80 shadow-xl shadow-slate-200/50 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+            {profil.image_sejarah_url && (
+              <div className="relative aspect-[4/3] rounded-3xl overflow-hidden bg-slate-100 border border-slate-200/60 shadow-inner">
+                <Image 
+                  src={profil.image_sejarah_url} 
+                  alt="Sejarah Desa" 
+                  fill 
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                  className="object-cover hover:scale-105 transition duration-700" 
+                />
               </div>
-
-              <div className="space-y-1">
-                <span className="text-[9px] font-black tracking-widest text-emerald-600 uppercase block">
-                  {staff.jabatan}
-                </span>
-                <h4 className="text-base font-black text-neutral-800 uppercase tracking-tight pt-0.5">
-                  {staff.nama}
-                </h4>
-              </div>
-
-              <p className="text-[11px] text-neutral-400 font-light leading-relaxed max-w-xs">
-                {staff.deskripsi}
+            )}
+            <div className="space-y-4">
+              <h2 className="text-2xl sm:text-3xl font-black text-slate-900">Sejarah Singkat Desa</h2>
+              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed whitespace-pre-line font-light">
+                {profil.sejarah}
               </p>
             </div>
-          ))}
-        </div>
-      </div>
+          </div>
+        )}
 
-      {/* 🗺️ 5. INFORMASI STATISTIK GEOGRAFIS */}
-      <div className="max-w-5xl mx-auto px-6">
-        <div className="bg-white border border-neutral-200/60 rounded-3xl p-6 md:p-8 grid grid-cols-1 sm:grid-cols-3 gap-6 text-center">
-          <div className="space-y-1.5 py-4 border-b sm:border-b-0 sm:border-r border-neutral-100">
-            <Users className="text-neutral-400 mx-auto" size={20} />
-            <span className="text-2xl font-black text-neutral-900 tracking-tight block">± 4.500</span>
-            <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest block">Total Jiwa Penduduk</span>
-          </div>
-          <div className="space-y-1.5 py-4 border-b sm:border-b-0 sm:border-r border-neutral-100">
-            <MapPin className="text-neutral-400 mx-auto" size={20} />
-            <span className="text-2xl font-black text-neutral-900 tracking-tight block">320 Ha</span>
-            <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest block">Luas Wilayah Desa</span>
-          </div>
-          <div className="space-y-1.5 py-4">
-            <Landmark className="text-neutral-400 mx-auto" size={20} />
-            <span className="text-sm font-black text-neutral-800 tracking-tight block uppercase pt-1 px-2 line-clamp-1">Kopi & Anyaman</span>
-            <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest block pt-1">Komoditas UMKM Utama</span>
-          </div>
-        </div>
-      </div>
+        {/* Visi & Misi */}
+        {(profil.visi || profil.misi) && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {profil.visi && (
+              <div className="bg-gradient-to-br from-slate-900 to-emerald-950 backdrop-blur-xl border border-slate-800 text-white p-8 sm:p-10 rounded-[2.5rem] space-y-6 shadow-xl flex flex-col justify-between">
+                <div className="space-y-4">
+                  <h3 className="text-2xl font-black text-white">Visi Utama Desa</h3>
+                  <blockquote className="text-sm text-slate-200 italic leading-relaxed border-l-2 border-emerald-400 pl-4 font-light">
+                    &ldquo;{profil.visi}&rdquo;
+                  </blockquote>
+                </div>
+                <p className="text-[10px] text-emerald-400/70 uppercase tracking-widest">Target Pembangunan Jangka Panjang</p>
+              </div>
+            )}
 
+            {profil.misi && (
+              <div className="bg-white/70 backdrop-blur-xl p-8 sm:p-10 rounded-[2.5rem] border border-white/80 space-y-6 shadow-xl shadow-slate-200/50 flex flex-col justify-between">
+                <div className="space-y-4">
+                  <h3 className="text-2xl font-black text-slate-900">Misi Kerja Desa</h3>
+                  <div className="text-xs sm:text-sm text-slate-600 leading-relaxed whitespace-pre-line space-y-2 font-light">
+                    {profil.misi}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Struktur Organisasi Pokdarwis (Centered) */}
+        {Array.isArray(profil.struktur) && profil.struktur.length > 0 && (
+          <div className="space-y-10 text-center">
+            <div className="space-y-2">
+              <span className="text-xs font-bold text-emerald-600 uppercase tracking-widest">Jajaran Pengelola Utama</span>
+              <h2 className="text-3xl font-black text-slate-900">Struktur Organisasi Pokdarwis</h2>
+            </div>
+
+            <div className="flex flex-wrap justify-center items-center gap-6">
+              {profil.struktur.map((item: any, idx: number) => (
+                <div key={idx} className="w-full sm:w-[calc(50%-12px)] md:w-[calc(33.333%-16px)] max-w-sm bg-white/70 backdrop-blur-xl p-8 rounded-[2rem] border border-white/80 shadow-xl shadow-slate-200/50 space-y-4 flex flex-col justify-between text-center hover:shadow-2xl hover:border-emerald-500/30 transition duration-300">
+                  <div className="space-y-3">
+                    <div className="w-14 h-14 bg-emerald-50 border border-emerald-500/20 text-emerald-600 rounded-2xl mx-auto flex items-center justify-center font-bold shadow-sm">
+                      <Users size={24} />
+                    </div>
+                    <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest block">{item.jabatan}</span>
+                    <h4 className="text-lg font-black text-slate-900 uppercase tracking-wide">{item.nama}</h4>
+                    <p className="text-xs text-slate-500 font-light leading-relaxed">{item.deskripsi}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Statistik Desa (Centered Container & Grid) */}
+        {Array.isArray(profil.statistik) && profil.statistik.length > 0 && (
+          <div className="bg-white/70 backdrop-blur-xl p-8 sm:p-10 rounded-[2.5rem] border border-white/80 shadow-xl shadow-slate-200/50">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-center justify-center items-center">
+              {profil.statistik.map((stat: any, idx: number) => (
+                <div key={idx} className="space-y-2 p-4 border-b sm:border-b-0 sm:border-r border-slate-200/80 last:border-none">
+                  <h4 className="text-3xl sm:text-4xl font-black text-emerald-600">{stat.nilai}</h4>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{stat.label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+      </div>
     </div>
   );
 }

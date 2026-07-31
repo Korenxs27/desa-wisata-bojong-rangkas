@@ -106,13 +106,14 @@ export default function Navbar() {
           <Link href="/" className="flex items-center shrink-0 transition-transform duration-300 hover:scale-105">
             <div className="w-10 h-10 rounded-full bg-white p-1.5 shadow-sm flex items-center justify-center border border-neutral-200/40 relative">
               <div className="relative w-full h-full">
-                <Image
-                  src="/images/logo.png" 
-                  alt="Logo Desa"
-                  fill
-                  priority
-                  className="object-contain"
-                />
+               <Image
+  src="/images/logo.png" 
+  alt="Logo Desa"
+  fill
+  priority
+  sizes="(max-width: 768px) 120px, 150px"
+  className="object-contain"
+/>
               </div>
             </div>
           </Link>

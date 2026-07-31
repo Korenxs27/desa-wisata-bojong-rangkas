@@ -96,7 +96,7 @@ export default function AdminHomestayPage() {
     const data = await res.json();
 
     if (res.ok && data.success) {
-      alert(editingItem ? "Homestay Berhasil Diperbarui!" : "Homestay Warga Berhasil Ditambahkan!");
+      alert(editingItem ? "Homestay Berhasil Diperbarui!" : "Homestay Berhasil Ditambahkan!");
       resetForm();
       fetchHomestayData();
     } else {
@@ -126,7 +126,7 @@ export default function AdminHomestayPage() {
       const data = await res.json();
 
       if (res.ok && data.success) {
-        alert("Homestay berhasil dihapus secara permanen!");
+        alert("Homestay berhasil dihapus!");
         setHomestays((prev) => prev.filter((item) => item.id !== id));
       } else {
         alert(`Gagal Menghapus: ${data.message || "Periksa koneksi backend."}`);
@@ -233,16 +233,6 @@ export default function AdminHomestayPage() {
                 />
               </div>
             </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">Fasilitas (Pisahkan Koma)</label>
-              <input
-                type="text" required value={fasilitasInput} onChange={(e) => setFasilitasInput(e.target.value)}
-                placeholder="AC, WiFi, Sarapan, Kamar Mandi Dalam"
-                className="w-full px-3.5 py-2 text-xs border rounded-xl outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
-
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1">Deskripsi</label>
               <textarea

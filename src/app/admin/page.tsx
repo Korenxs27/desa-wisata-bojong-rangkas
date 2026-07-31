@@ -9,6 +9,7 @@ import {
   ShoppingBag, 
   Home, 
   Package, 
+  Landmark,
   Image as GalleryIcon, 
   LogOut, 
   ExternalLink,
@@ -164,6 +165,12 @@ export default function AdminDashboard() {
             <div className="pt-4 pb-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2">
               Kelola Konten Desa
             </div>
+            <Link href="/admin/beranda" className="flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-slate-600 hover:bg-emerald-50 hover:text-emerald-600 transition">
+    <Home size={16} /> Beranda
+  </Link>
+            <Link href="/admin/profil" onClick={() => setIsMobileSidebarOpen(false)} className="flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-slate-600 hover:bg-emerald-50">
+  <Landmark size={16} /> Profil Desa
+</Link>
             <Link href="/admin/wisata" className="flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 transition">
               <MapPin size={16} /> Wisata
             </Link>
@@ -222,6 +229,9 @@ export default function AdminDashboard() {
                 <div className="pt-4 pb-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2">
                   Kelola Konten Desa
                 </div>
+                <Link href="/admin/profil" onClick={() => setIsMobileSidebarOpen(false)} className="flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-slate-600 hover:bg-emerald-50">
+  <Landmark size={16} /> Profil Desa
+</Link>
                 <Link href="/admin/wisata" onClick={() => setIsMobileSidebarOpen(false)} className="flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-slate-600 hover:bg-emerald-50">
                   <MapPin size={16} /> Wisata
                 </Link>

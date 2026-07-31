@@ -43,12 +43,19 @@ export default function AdminPaketPage() {
     fetchPaketData();
   }, []);
 
-  const handleStartEdit = (item: PaketWisata) => {
+ const handleStartEdit = (item: PaketWisata) => {
     setEditingItem(item);
     setTitle(item.title?.rendered || "");
-    setHargaMinimal(String(item.acf?.harga_minimal || ""));
-    setDurasiPaket(item.acf?.durasi_paket || "2 Hari 1 Malam");
-    setMinimalPeserta(item.acf?.minimal_peserta || 5);
+    
+    // Casting ke any biar lolos dari strict type checking TypeScript
+    const acf = (item.acf || {}) as any;
+    const hargaVal = acf.harga_minimal ?? acf.harga ?? "";
+    const durasiVal = acf.durasi_paket ?? acf.durasi ?? "2 Hari 1 Malam";
+    const pesertaVal = acf.minimal_peserta ?? 5;
+
+    setHargaMinimal(String(hargaVal));
+    setDurasiPaket(durasiVal);
+    setMinimalPeserta(pesertaVal);
     setDeskripsi(item.content?.rendered?.replace(/<[^>]+>/g, '') || "");
   };
 
@@ -118,7 +125,7 @@ export default function AdminPaketPage() {
       const data = await res.json();
 
       if (res.ok && data.success) {
-        alert("Paket Wisata berhasil dihapus secara permanen!");
+        alert("Paket Wisata berhasil dihapus!");
         setPaketList((prev) => prev.filter((item) => item.id !== id));
       } else {
         alert(`Gagal Menghapus: ${data.message || "Periksa koneksi backend."}`);

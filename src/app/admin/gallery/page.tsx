@@ -54,7 +54,7 @@ export default function AdminGalleryPage() {
       const data = await res.json();
 
       if (data.success) {
-        alert("Foto berhasil diunggah dan tersimpan ke server! ✨");
+        alert("Foto berhasil diunggah!");
         setTitle("");
         setCategory("");
         setFile(null);

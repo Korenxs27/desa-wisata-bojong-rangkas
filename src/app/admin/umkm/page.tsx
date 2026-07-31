@@ -51,33 +51,44 @@ export default function AdminUMKMPage() {
 
   const ck = "ck_3512f4b660cb493791156b8e2a57ed734fe92fe4";
   const cs = "cs_6e530c56ba5fdd875c311c8b24b2429fe5885db3";
-  const authHeader = 'Basic ' + btoa(`${ck}:${cs}`);
 
- const fetchProducts = async () => {
-  setLoading(true);
-  try {
-    const res = await fetch(
-      `https://desa-wisata-bojongrangkas.biznityhub.com/wp-json/wc/v3/products?consumer_key=${ck}&consumer_secret=${cs}`,
-      { cache: "no-store" }
-    );
-    const data = await res.json();
-    
-    if (Array.isArray(data)) {
-      // 🚀 Saring hanya produk UMKM murni, abaikan [HOMESTAY] & [PAKET]
-      const umkmOnly = data.filter((item: any) => {
-        const isHomestay = item.name.startsWith("[HOMESTAY]");
-        const isPaket = item.name.startsWith("[PAKET]");
-        return !isHomestay && !isPaket;
-      });
+  const fetchProducts = async () => {
+    setLoading(true);
+    try {
+      // 🚀 Ditambahkan per_page=100 agar semua produk UMKM terpanggil tanpa batasan pagination default (10 item)
+      const res = await fetch(
+        `https://desa-wisata-bojongrangkas.biznityhub.com/wp-json/wc/v3/products?per_page=100&consumer_key=${ck}&consumer_secret=${cs}`,
+        { cache: "no-store" }
+      );
+      const data = await res.json();
+      
+      if (Array.isArray(data)) {
+        // 🚀 Saring ketat: Buang produk [WISATA], [HOMESTAY], [PAKET], atau yang masuk kategori Booking Engine
+        const umkmOnly = data.filter((item: any) => {
+          const itemName = (item.name || "").toUpperCase();
+          const categories = item.categories || [];
 
-      setProducts(umkmOnly);
+          const isBookingPrefix = 
+            itemName.startsWith("[WISATA]") || 
+            itemName.startsWith("[HOMESTAY]") || 
+            itemName.startsWith("[PAKET]") ||
+            itemName.startsWith("[BOOKING]");
+
+          const isBookingCategory = categories.some(
+            (cat: any) => cat.name.toLowerCase() === "booking engine"
+          );
+
+          return !isBookingPrefix && !isBookingCategory;
+        });
+
+        setProducts(umkmOnly);
+      }
+    } catch (err) {
+      console.error("Gagal load produk:", err);
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    console.error("Gagal load produk:", err);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   useEffect(() => {
     fetchProducts();
@@ -94,7 +105,8 @@ export default function AdminUMKMPage() {
     setLength(item.dimensions?.length || "");
     setWidth(item.dimensions?.width || "");
     setHeight(item.dimensions?.height || "");
-    setDesc(item.description.replace(/<[^>]+>/g, ''));
+    setDesc(item.description ? item.description.replace(/<[^>]+>/g, '') : "");
+    setImageFile(null);
   };
 
   const resetForm = () => {
@@ -112,7 +124,6 @@ export default function AdminUMKMPage() {
     setImageFile(null);
   };
 
-  // Submit Handler (Create & Update WC Product)
   const handleSubmitProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -120,19 +131,34 @@ export default function AdminUMKMPage() {
     try {
       let mediaId = 0;
 
-      // 1. Upload Gambar Ke WP Media Library Jika Ada File Baru
       if (imageFile) {
         const formData = new FormData();
-        formData.append("file", imageFile);
+        formData.append("image_file", imageFile);
 
-        const uploadRes = await fetch("https://desa-wisata-bojongrangkas.biznityhub.com/wp-json/wp/v2/media", {
+        const uploadRes = await fetch("https://desa-wisata-bojongrangkas.biznityhub.com/wp-json/wc-bridge/v1/upload-image", {
           method: "POST",
-          headers: { Authorization: authHeader },
           body: formData,
         });
 
-        const mediaData = await uploadRes.json();
-        if (uploadRes.ok && mediaData.id) mediaId = mediaData.id;
+        const rawText = await uploadRes.text();
+        let mediaData;
+        try {
+          mediaData = JSON.parse(rawText);
+        } catch (e) {
+          console.error("Respon Server Bukan JSON:", rawText);
+          alert("Gagal upload: Server mengembalikan format yang tidak valid.");
+          setIsSubmitting(false);
+          return;
+        }
+
+        if (uploadRes.ok && mediaData.success && mediaData.id) {
+          mediaId = mediaData.id;
+        } else {
+          console.error("Gagal upload media:", mediaData);
+          alert(`Gagal mengunggah foto: ${mediaData.message || "Kesalahan server internal"}`);
+          setIsSubmitting(false);
+          return;
+        }
       }
 
       const isEdit = !!editingItem;
@@ -140,7 +166,6 @@ export default function AdminUMKMPage() {
         ? `https://desa-wisata-bojongrangkas.biznityhub.com/wp-json/wc/v3/products/${editingItem.id}?consumer_key=${ck}&consumer_secret=${cs}`
         : `https://desa-wisata-bojongrangkas.biznityhub.com/wp-json/wc/v3/products?consumer_key=${ck}&consumer_secret=${cs}`;
 
-      // Payload REST API WooCommerce Lengkap dengan Shipping
       const payload: any = {
         name: name,
         regular_price: price,
@@ -156,7 +181,7 @@ export default function AdminUMKMPage() {
         description: desc,
       };
 
-      if (mediaId) {
+      if (mediaId > 0) {
         payload.images = [{ id: mediaId }];
       }
 
@@ -175,13 +200,13 @@ export default function AdminUMKMPage() {
         alert(`Gagal menyimpan produk: ${errData.message || "Periksa data"}`);
       }
     } catch (error) {
+      console.error("Submit Error:", error);
       alert("Terjadi kesalahan jaringan.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Delete Handler
   const handleDeleteProduct = async (id: number) => {
     if (!confirm("Apakah Anda yakin ingin menghapus produk UMKM ini secara permanen?")) return;
 
@@ -203,7 +228,6 @@ export default function AdminUMKMPage() {
 
   return (
     <div className="min-h-screen bg-slate-100 p-8">
-      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
           <Link href="/admin" className="p-2.5 bg-white rounded-xl shadow-sm hover:bg-slate-50 transition">
