@@ -45,41 +45,43 @@ export default async function ProdukPage() {
   let errorMessage = "";
 
   try {
-  const response = await wcApi.get("products", {
-    category: "70", 
-    per_page: 20
-  });
-  
-  products = response.data || response; 
-} catch (error) {
-  console.error("Gagal mengambil data dari WooCommerce:", error);
-  errorMessage = "Gagal memuat data komplit dari server WooCommerce.";
-}
+    const response = await wcApi.get("products", {
+      category: "70", 
+      per_page: 20
+    });
+    
+    products = response.data || response; 
+  } catch (error) {
+    console.error("Gagal mengambil data dari WooCommerce:", error);
+    errorMessage = "Gagal memuat data komplit dari server WooCommerce.";
+  }
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] text-neutral-800 antialiased pb-20 pt-20 selection:bg-emerald-100">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/20 to-teal-50/30 text-neutral-800 antialiased pb-24 pt-36 px-4 sm:px-6 lg:px-8 selection:bg-emerald-100 relative overflow-hidden">
       
-      {/* Hero Banner */}
-      <div className="max-w-7xl mx-auto px-6 pt-16 pb-12 text-center space-y-4">
-        <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-600 bg-emerald-50/60 px-4 py-1.5 rounded-full border border-emerald-100">
-          Katalog Ekosistem UMKM
-        </span>
-        <h1 className="text-4xl md:text-5xl font-light font-serif tracking-tight text-neutral-900">
-          Produk Bojong Rangkas
-        </h1>
-        <p className="max-w-md mx-auto text-xs text-neutral-400 font-light leading-relaxed">
-          Eksplorasi produk lokal terverifikasi, lengkap dengan detail dimensi fisik, kategori, dan info stok aktual.
-        </p>
-      </div>
+      {/* Background Soft Glassy Glow Effects */}
+      <div className="absolute top-10 left-1/4 w-96 h-96 bg-emerald-300/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="absolute top-1/3 right-10 w-96 h-96 bg-teal-300/10 rounded-full blur-3xl pointer-events-none"></div>
 
-      {errorMessage && (
-        <div className="max-w-md mx-auto bg-rose-50 border border-rose-100 text-rose-600 p-4 rounded-2xl mb-8 text-xs text-center font-light">
-          {errorMessage}
+      <div className="max-w-7xl mx-auto space-y-12 relative z-10">
+        
+        {/* Hero Banner (Centered & Luxury Serif) */}
+        <div className="space-y-3 text-center max-w-xl mx-auto">
+          <h1 className="text-3xl md:text-5xl font-serif font-normal tracking-tight text-neutral-900">
+            Produk Bojong Rangkas
+          </h1>
+          <p className="text-xs text-neutral-500 font-light leading-relaxed">
+            Eksplorasi produk lokal terverifikasi, lengkap dengan detail dimensi fisik, kategori, dan info stok aktual.
+          </p>
         </div>
-      )}
 
-      {/* Grid Katalog Advanced */}
-      <div className="max-w-7xl mx-auto px-6">
+        {errorMessage && (
+          <div className="max-w-md mx-auto bg-rose-50 border border-rose-100 text-rose-600 p-4 rounded-2xl text-xs text-center font-light shadow-sm">
+            {errorMessage}
+          </div>
+        )}
+
+        {/* Grid Katalog Advanced */}
         {products.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {products.map((product) => {
@@ -95,7 +97,7 @@ export default async function ProdukPage() {
               return (
                 <div
                   key={product.id}
-                  className="group bg-white/70 backdrop-blur-md rounded-3xl border border-white/80 overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.01)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.025)] transition duration-500 flex flex-col h-full relative"
+                  className="group bg-white/70 backdrop-blur-xl rounded-[2rem] border border-white/85 overflow-hidden shadow-xl shadow-slate-200/50 hover:shadow-2xl transition-all duration-500 flex flex-col h-full relative"
                 >
                   {/* Image & Badges View */}
                   <div className="relative h-64 w-full overflow-hidden bg-neutral-50 border-b border-neutral-100/40">
@@ -116,31 +118,31 @@ export default async function ProdukPage() {
                     {/* Floating Stock Status Badge */}
                     <div className="absolute top-4 left-4 z-10">
                       {product.stock_status === "instock" ? (
-                        <span className="inline-flex items-center gap-1 bg-emerald-500/80 backdrop-blur-md text-white px-2.5 py-1 rounded-xl text-[10px] font-medium shadow-sm">
+                        <span className="inline-flex items-center gap-1 bg-emerald-600/90 backdrop-blur-md text-white px-3 py-1 rounded-xl text-[10px] font-bold shadow-sm">
                           <CheckCircle size={10}/> Ready
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 bg-neutral-500/80 backdrop-blur-md text-white px-2.5 py-1 rounded-xl text-[10px] font-medium shadow-sm">
+                        <span className="inline-flex items-center gap-1 bg-neutral-600/90 backdrop-blur-md text-white px-3 py-1 rounded-xl text-[10px] font-bold shadow-sm">
                           <AlertCircle size={10}/> Habis
                         </span>
                       )}
                     </div>
 
-                    {/* Floating Price Tag (Mendukung Coretan Diskon) */}
-                    <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-md border border-white/60 p-2 px-3.5 rounded-2xl shadow-sm text-right">
+                    {/* Floating Price Tag (Format Rp. XXX.XXX) */}
+                    <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-md border border-white/80 p-2.5 px-4 rounded-2xl shadow-sm text-right">
                       {isSale && (
                         <span className="text-[10px] text-neutral-400 line-through block font-light leading-none mb-0.5">
-                          Rp {parseInt(product.regular_price).toLocaleString("id-ID")}
+                          Rp. {parseInt(product.regular_price).toLocaleString("id-ID")}
                         </span>
                       )}
                       <span className="text-xs font-bold text-neutral-900 tracking-tight block">
-                        {hasPrice ? `Rp ${parseInt(product.price).toLocaleString("id-ID")}` : "Hubungi Penjual"}
+                        {hasPrice ? `Rp. ${parseInt(product.price).toLocaleString("id-ID")}` : "Hubungi Penjual"}
                       </span>
                     </div>
                   </div>
 
                   {/* Card Main Body */}
-                  <div className="p-6 flex flex-col flex-grow space-y-4">
+                  <div className="p-6 flex flex-col flex-grow space-y-4 bg-white/40 backdrop-blur-md">
                     <div className="space-y-1">
                       {/* Dynamic Kategori dari WooCommerce */}
                       <div className="flex items-center gap-1.5 text-[10px] text-emerald-600 font-bold uppercase tracking-wider">
@@ -151,7 +153,7 @@ export default async function ProdukPage() {
                       </div>
                       
                       <Link href={`/umkm/${product.slug}`}>
-                        <h3 className="text-base font-medium text-neutral-900 tracking-tight group-hover:text-emerald-600 transition truncate pt-0.5">
+                        <h3 className="text-sm font-bold text-neutral-900 uppercase tracking-tight group-hover:text-emerald-600 transition truncate pt-0.5">
                           {product.name}
                         </h3>
                       </Link>
@@ -159,22 +161,22 @@ export default async function ProdukPage() {
 
                     {/* Short Description */}
                     <div 
-                      className="text-xs text-neutral-400 font-light line-clamp-2 leading-relaxed" 
+                      className="text-xs text-neutral-500 font-light line-clamp-2 leading-relaxed" 
                       dangerouslySetInnerHTML={{ __html: product.short_description || "Tidak ada deskripsi singkat." }} 
                     />
 
-                    {/* FITUR BARU: Info Dimensi Logistik & Berat Asli WooCommerce */}
+                    {/* Info Dimensi Logistik & Berat Asli WooCommerce */}
                     {(product.weight || hasDimensions) && (
-                      <div className="bg-neutral-50/60 border border-neutral-100/70 p-3 rounded-2xl grid grid-cols-2 gap-2 text-[11px] font-light text-neutral-500">
+                      <div className="bg-white/60 backdrop-blur-md border border-neutral-200/60 p-3 rounded-2xl grid grid-cols-2 gap-2 text-[11px] font-light text-neutral-500">
                         {product.weight && (
                           <div className="flex items-center gap-1.5 truncate">
-                            <Scale size={12} className="text-neutral-400 shrink-0" />
+                            <Scale size={12} className="text-emerald-600 shrink-0" />
                             <span>{product.weight} kg</span>
                           </div>
                         )}
                         {hasDimensions && (
                           <div className="flex items-center gap-1.5 truncate">
-                            <Maximize2 size={12} className="text-neutral-400 shrink-0" />
+                            <Maximize2 size={12} className="text-emerald-600 shrink-0" />
                             <span>
                               {product.dimensions.length || 0}x{product.dimensions.width || 0}x{product.dimensions.height || 0} cm
                             </span>
@@ -184,26 +186,25 @@ export default async function ProdukPage() {
                     )}
 
                     {/* Action Button di Katalog */}
-<div className="border-t border-neutral-100/60 pt-4 mt-auto">
-  <Link 
-    href={`/umkm/${product.slug}`} 
-    className="w-full bg-neutral-900 group-hover:bg-emerald-600 text-white py-3 rounded-xl text-xs font-semibold tracking-wider uppercase transition flex items-center justify-center gap-2 shadow-sm"
-  >
-    Lihat Detail <Tag size={12} />
-  </Link>
-</div>
+                    <div className="border-t border-neutral-100/60 pt-4 mt-auto">
+                      <Link 
+                        href={`/umkm/${product.slug}`} 
+                        className="w-full bg-neutral-900 group-hover:bg-emerald-600 text-white py-3 rounded-xl text-xs font-semibold tracking-wider uppercase transition flex items-center justify-center gap-2 shadow-sm"
+                      >
+                        Lihat Detail <Tag size={12} />
+                      </Link>
+                    </div>
                   </div>
                 </div>
               );
             })}
           </div>
         ) : (
-          <div className="text-center p-20 bg-white/40 backdrop-blur-md rounded-3xl border border-white/60">
+          <div className="text-center py-24 bg-white/70 backdrop-blur-xl rounded-[2.5rem] border border-white/85 shadow-sm max-w-md mx-auto">
             <p className="text-xs text-neutral-400 italic">Belum ada komoditas UMKM yang terdaftar saat ini.</p>
           </div>
         )}
       </div>
-
     </div>
   );
 }

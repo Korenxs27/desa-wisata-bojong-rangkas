@@ -107,24 +107,24 @@ export default function Navbar() {
             <div className="w-10 h-10 rounded-full bg-white p-1.5 shadow-sm flex items-center justify-center border border-neutral-200/40 relative">
               <div className="relative w-full h-full">
                <Image
-  src="/images/logo.png" 
-  alt="Logo Desa"
-  fill
-  priority
-  sizes="(max-width: 768px) 120px, 150px"
-  className="object-contain"
-/>
+                  src="/images/logo.png" 
+                  alt="Logo Desa"
+                  fill
+                  priority
+                  sizes="(max-width: 768px) 120px, 150px"
+                  className="object-contain"
+                />
               </div>
             </div>
           </Link>
 
-          {/* CENTER: DESKTOP NAV MENU */}
+          {/* CENTER: DESKTOP NAV MENU (Updated Font Style) */}
           <nav className="hidden lg:flex items-center gap-1.5 lg:gap-3">
             {menuItems.map((item) => (
               <Link
                 key={item.name}
                 href={item.href}
-                className="text-[11px] lg:text-[12px] font-bold tracking-wide px-3.5 py-2 rounded-full transition-all duration-300 text-slate-900 hover:text-emerald-600 hover:bg-slate-900/5 whitespace-nowrap"
+                className="text-[11px] lg:text-[12px] font-serif font-normal tracking-wide px-3.5 py-2 rounded-full transition-all duration-300 text-slate-900 hover:text-emerald-600 hover:bg-slate-900/5 whitespace-nowrap"
               >
                 {item.name}
               </Link>
@@ -137,7 +137,7 @@ export default function Navbar() {
               onClick={() => setIsSearchOpen(true)}
               className="hidden sm:flex items-center justify-between w-32 md:w-40 px-4 py-2 bg-slate-900/5 border border-slate-900/10 hover:bg-slate-900/10 rounded-full cursor-pointer transition gap-2 group text-slate-800"
             >
-              <span className="text-[11px] font-medium">Cari...</span>
+              <span className="text-[11px] font-light">Cari...</span>
               <Search size={13} className="transition text-slate-600 group-hover:text-emerald-600" />
             </div>
 
@@ -243,14 +243,14 @@ export default function Navbar() {
             </Link>
           )}
 
-          {/* Daftar Menu Navigasi Mobile */}
+          {/* Daftar Menu Navigasi Mobile (Updated Font Style) */}
           <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
             {menuItems.map((item) => (
               <Link
                 key={item.name}
                 href={item.href}
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="text-xs font-bold text-slate-700 hover:text-emerald-600 hover:bg-slate-50 p-3 rounded-xl transition"
+                className="text-xs font-serif font-normal text-slate-700 hover:text-emerald-600 hover:bg-slate-50 p-3 rounded-xl transition"
               >
                 {item.name}
               </Link>

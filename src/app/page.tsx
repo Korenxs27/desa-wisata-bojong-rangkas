@@ -145,7 +145,7 @@ export default function HomePage() {
             <div className="flex justify-between items-end">
               <div className="space-y-1">
                 <span className="text-[11px] font-bold text-emerald-600 uppercase tracking-widest flex items-center gap-1"><Compass size={12}/> Jelajahi Paket Pilihan</span>
-                <h2 className="text-2xl md:text-3xl font-black tracking-tight text-slate-900 uppercase">{sectionTitles.paket}</h2>
+                <h2 className="text-2xl md:text-3xl font-serif font-normal tracking-tight text-slate-900">{sectionTitles.paket}</h2>
               </div>
               <div className="flex gap-2">
                 <button onClick={() => scrollCarousel(paketRef, "left")} className="p-2.5 rounded-full bg-white/80 backdrop-blur-md border border-slate-200/80 hover:bg-white shadow-sm transition cursor-pointer"><ChevronLeft size={18} /></button>
@@ -165,9 +165,9 @@ export default function HomePage() {
                           <Image src={imgUrl} alt={item.title.rendered} fill className="object-cover group-hover:scale-105 transition duration-500" />
                         </div>
                         <div className="p-6 space-y-4">
-                          <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight line-clamp-1">{item.title.rendered}</h3>
+                          <h3 className="text-sm font-bold text-slate-900 uppercase tracking-tight line-clamp-1">{item.title.rendered}</h3>
                           <div className="flex justify-between items-center pt-3 border-t border-slate-100 text-xs">
-                            <span className="text-emerald-600 font-bold">Mulai Rp {Number(harga).toLocaleString("id-ID")}</span>
+                            <span className="text-emerald-600 font-bold">Mulai Rp. {Number(harga).toLocaleString("id-ID")}</span>
                             <div className="bg-slate-50 p-2 rounded-xl border border-slate-200/60 text-slate-600 group-hover:bg-emerald-600 group-hover:text-white transition duration-300">
                               <ArrowUpRight size={14} />
                             </div>
@@ -190,7 +190,7 @@ export default function HomePage() {
             <div className="flex justify-between items-end">
               <div className="space-y-1">
                 <span className="text-[11px] font-bold text-emerald-600 uppercase tracking-widest flex items-center gap-1"><MapPin size={12}/> Destinasi Lokal</span>
-                <h2 className="text-2xl md:text-3xl font-black tracking-tight text-slate-900 uppercase">{sectionTitles.wisata}</h2>
+                <h2 className="text-2xl md:text-3xl font-serif font-normal tracking-tight text-slate-900">{sectionTitles.wisata}</h2>
               </div>
               <div className="flex gap-2">
                 <button onClick={() => scrollCarousel(wisataRef, "left")} className="p-2.5 rounded-full bg-white/80 backdrop-blur-md border border-slate-200/80 hover:bg-white shadow-sm transition cursor-pointer"><ChevronLeft size={18} /></button>
@@ -210,9 +210,9 @@ export default function HomePage() {
                           <Image src={imgUrl} alt={item.title.rendered} fill className="object-cover group-hover:scale-105 transition duration-500" />
                         </div>
                         <div className="p-6 space-y-4">
-                          <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight line-clamp-1">{item.title.rendered}</h3>
+                          <h3 className="text-sm font-bold text-slate-900 uppercase tracking-tight line-clamp-1">{item.title.rendered}</h3>
                           <div className="flex justify-between items-center pt-3 border-t border-slate-100 text-xs">
-                            <span className="text-emerald-600 font-bold">Rp {Number(harga).toLocaleString("id-ID")}</span>
+                            <span className="text-emerald-600 font-bold">Rp. {Number(harga).toLocaleString("id-ID")}</span>
                             <div className="bg-slate-50 p-2 rounded-xl border border-slate-200/60 text-slate-600 group-hover:bg-emerald-600 group-hover:text-white transition duration-300">
                               <ArrowUpRight size={14} />
                             </div>
@@ -235,7 +235,7 @@ export default function HomePage() {
             <div className="flex justify-between items-end">
               <div className="space-y-1">
                 <span className="text-[11px] font-bold text-emerald-600 uppercase tracking-widest flex items-center gap-1"><ShoppingBag size={12}/> Oleh-Oleh Khas Desa</span>
-                <h2 className="text-2xl md:text-3xl font-black tracking-tight text-slate-900 uppercase">{sectionTitles.umkm}</h2>
+                <h2 className="text-2xl md:text-3xl font-serif font-normal tracking-tight text-slate-900">{sectionTitles.umkm}</h2>
               </div>
               <div className="flex gap-2">
                 <button onClick={() => scrollCarousel(umkmRef, "left")} className="p-2.5 rounded-full bg-white/80 backdrop-blur-md border border-slate-200/80 hover:bg-white shadow-sm transition cursor-pointer"><ChevronLeft size={18} /></button>
@@ -256,9 +256,9 @@ export default function HomePage() {
                           <Image src={imgUrl} alt={productName || "UMKM"} fill className="object-cover group-hover:scale-105 transition duration-500" />
                         </div>
                         <div className="space-y-3">
-                          <h3 className="text-xs font-black text-slate-900 line-clamp-1 uppercase tracking-tight">{productName}</h3>
+                          <h3 className="text-xs font-bold text-slate-900 line-clamp-1 uppercase tracking-tight">{productName}</h3>
                           <div className="flex justify-between items-center text-xs pt-3 border-t border-slate-100">
-                            <span className="text-emerald-600 font-bold">{productPrice ? `Rp ${parseInt(productPrice).toLocaleString("id-ID")}` : "Hubungi Penjual"}</span>
+                            <span className="text-emerald-600 font-bold">{productPrice ? `Rp. ${parseInt(productPrice).toLocaleString("id-ID")}` : "Hubungi Penjual"}</span>
                             <Link href={`/umkm/${product.slug}`} className="text-[10px] bg-slate-900 hover:bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-xl uppercase tracking-wider transition flex items-center gap-1 shadow-sm">
                               Detail <Tag size={10} />
                             </Link>
@@ -281,7 +281,7 @@ export default function HomePage() {
             <div className="flex justify-between items-end">
               <div className="space-y-1">
                 <span className="text-[11px] font-bold text-emerald-600 uppercase tracking-widest flex items-center gap-1"><Home size={12}/> Hunian Autentik Warga</span>
-                <h2 className="text-2xl md:text-3xl font-black tracking-tight text-slate-900 uppercase">{sectionTitles.homestay}</h2>
+                <h2 className="text-2xl md:text-3xl font-serif font-normal tracking-tight text-slate-900">{sectionTitles.homestay}</h2>
               </div>
               <div className="flex gap-2">
                 <button onClick={() => scrollCarousel(homestayRef, "left")} className="p-2.5 rounded-full bg-white/80 backdrop-blur-md border border-slate-200/80 hover:bg-white shadow-sm transition cursor-pointer"><ChevronLeft size={18} /></button>
@@ -304,11 +304,11 @@ export default function HomePage() {
                           </div>
                         </div>
                         <div className="p-6 space-y-4">
-                          <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight line-clamp-1">{homestay.title.rendered}</h3>
+                          <h3 className="text-sm font-bold text-slate-900 uppercase tracking-tight line-clamp-1">{homestay.title.rendered}</h3>
                           <div className="flex justify-between items-center pt-3 border-t border-slate-100 text-xs">
                             <div>
                               <span className="text-slate-400 block text-[9px] font-light">Tarif / Malam</span>
-                              <span className="text-emerald-600 font-bold text-sm">Rp {Number(harga).toLocaleString("id-ID")}</span>
+                              <span className="text-emerald-600 font-bold text-sm">Rp. {Number(harga).toLocaleString("id-ID")}</span>
                             </div>
                             <span className="bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-xl font-bold text-[10px] uppercase tracking-wider border border-emerald-500/20">Sewa</span>
                           </div>
@@ -330,7 +330,7 @@ export default function HomePage() {
             <div className="flex justify-between items-end">
               <div className="space-y-1">
                 <span className="text-[11px] font-bold text-emerald-600 uppercase tracking-widest flex items-center gap-1"><ImageIcon size={12}/> Potret Kegiatan & Suasana</span>
-                <h2 className="text-2xl md:text-3xl font-black tracking-tight text-slate-900 uppercase">{sectionTitles.gallery}</h2>
+                <h2 className="text-2xl md:text-3xl font-serif font-normal tracking-tight text-slate-900">{sectionTitles.gallery}</h2>
               </div>
               <div className="flex items-center gap-4">
                 <Link href="/gallery" className="text-xs font-bold text-emerald-600 hover:text-emerald-700 hidden sm:inline-block">
@@ -355,7 +355,7 @@ export default function HomePage() {
                         </span>
                       </div>
                       <div className="p-5 space-y-1.5 bg-white/50">
-                        <h3 className="text-xs font-black text-slate-900 uppercase tracking-tight line-clamp-1">{item.title}</h3>
+                        <h3 className="text-xs font-bold text-slate-900 uppercase tracking-tight line-clamp-1">{item.title}</h3>
                         <p className="text-[10px] text-slate-400 font-light">🕒 {item.date}</p>
                       </div>
                     </div>
@@ -394,7 +394,7 @@ export default function HomePage() {
         <div className="max-w-7xl w-full mx-auto flex flex-col-reverse md:flex-row items-center gap-12 md:gap-16">
           
           <div className="w-full md:w-1/2 space-y-6 text-center md:text-left flex flex-col items-center md:items-start">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-black uppercase tracking-tight text-slate-900 leading-tight">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-serif font-normal tracking-tight text-slate-900 leading-tight">
               {heroData.title_line_1} <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-600">{heroData.title_line_2}</span>
             </h1>

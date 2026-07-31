@@ -84,24 +84,24 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen relative flex items-center justify-center p-4 bg-gradient-to-br from-slate-50 via-emerald-50/30 to-teal-50/40 overflow-hidden">
+    <div className="min-h-screen relative flex items-center justify-center p-4 bg-gradient-to-br from-slate-50 via-emerald-50/20 to-teal-50/30 overflow-hidden">
       
-      {/* Background Glows */}
-      <div className="absolute top-1/4 -left-20 w-96 h-96 bg-emerald-400/15 rounded-full blur-[100px] pointer-events-none" />
-      <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-teal-400/15 rounded-full blur-[100px] pointer-events-none" />
+      {/* Background Soft Glassy Glow Effects */}
+      <div className="absolute top-1/4 -left-20 w-96 h-96 bg-emerald-300/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-teal-300/10 rounded-full blur-3xl pointer-events-none" />
 
       {/* Tombol Kembali ke Beranda */}
-      <div className="absolute top-6 left-6 z-20">
+      <div className="absolute top-6 left-6 z-25">
         <Link 
           href="/" 
-          className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/70 backdrop-blur-md border border-slate-200/80 text-slate-700 hover:text-emerald-700 hover:bg-white transition text-xs font-bold shadow-sm"
+          className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 backdrop-blur-md border border-slate-200/80 text-slate-700 hover:text-emerald-700 hover:bg-white transition text-xs font-bold shadow-sm"
         >
           <ArrowLeft size={14} /> Kembali ke Beranda
         </Link>
       </div>
 
-      {/* Card Container */}
-      <div className="relative z-10 max-w-md w-full bg-white/60 backdrop-blur-2xl backdrop-saturate-200 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.06)] p-8 border border-white/80">
+      {/* Card Container (Glassy Luxury Style) */}
+      <div className="relative z-10 max-w-md w-full bg-white/70 backdrop-blur-xl border border-white/85 rounded-[2.5rem] shadow-xl shadow-slate-200/50 p-8">
         
         {/* Toggle Tab (Hanya muncul jika tidak sedang di mode Lupa Password) */}
         {!isForgotPassword && (
@@ -123,12 +123,12 @@ export default function LoginPage() {
           </div>
         )}
 
-        {/* Heading */}
-        <div className="text-center mb-6">
-          <h2 className="text-2xl font-extrabold text-slate-800 tracking-tight">
+        {/* Heading (Updated to Serif Luxury Font) */}
+        <div className="text-center mb-6 space-y-1.5">
+          <h2 className="text-2xl sm:text-3xl font-serif font-normal text-slate-900 tracking-tight">
             {isForgotPassword ? 'Reset Password' : isSignUp ? 'Buat Akun Baru' : 'Selamat Datang'}
           </h2>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-slate-500 font-light leading-relaxed">
             {isForgotPassword 
               ? 'Masukkan email terdaftar untuk pemulihan akun' 
               : isSignUp 
@@ -158,7 +158,7 @@ export default function LoginPage() {
                   name="email"
                   required
                   placeholder="nama@email.com"
-                  className="w-full pl-10 pr-4 py-2.5 text-xs bg-white/80 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition shadow-sm"
+                  className="w-full pl-10 pr-4 py-2.5 text-xs bg-white/60 border border-slate-200/80 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition shadow-sm"
                 />
               </div>
             </div>
@@ -166,7 +166,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-md transition disabled:opacity-50"
+              className="w-full py-3 bg-neutral-900 hover:bg-emerald-600 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-sm transition disabled:opacity-50"
             >
               {loading ? 'Mengirim...' : 'Kirim Tautan Pemulihan'}
             </button>
@@ -192,7 +192,7 @@ export default function LoginPage() {
                   name="username"
                   required
                   placeholder="Masukkan username atau email"
-                  className="w-full pl-10 pr-4 py-2.5 text-xs bg-white/80 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition shadow-sm"
+                  className="w-full pl-10 pr-4 py-2.5 text-xs bg-white/60 border border-slate-200/80 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition shadow-sm"
                 />
               </div>
             </div>
@@ -209,7 +209,7 @@ export default function LoginPage() {
                     name="email"
                     required
                     placeholder="nama@email.com"
-                    className="w-full pl-10 pr-4 py-2.5 text-xs bg-white/80 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition shadow-sm"
+                    className="w-full pl-10 pr-4 py-2.5 text-xs bg-white/60 border border-slate-200/80 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition shadow-sm"
                   />
                 </div>
               </div>
@@ -229,7 +229,7 @@ export default function LoginPage() {
                   name="password"
                   required
                   placeholder="••••••••"
-                  className="w-full pl-10 pr-10 py-2.5 text-xs bg-white/80 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition shadow-sm"
+                  className="w-full pl-10 pr-10 py-2.5 text-xs bg-white/60 border border-slate-200/80 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition shadow-sm"
                 />
 
                 {/* Tombol Mata (Show/Hide Password) di Kanan */}
@@ -260,7 +260,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 mt-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-[0_10px_20px_rgba(16,185,129,0.25)] transition-all transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+              className="w-full py-3 mt-2 bg-neutral-900 hover:bg-emerald-600 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-sm transition-all transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
             >
               {loading ? 'Memproses...' : isSignUp ? 'Daftar Akun Baru' : 'Sign In'}
             </button>

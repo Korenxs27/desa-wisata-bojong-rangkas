@@ -28,25 +28,25 @@ export default function HomeMarquee() {
 
       {/* 💬 REVIEW USER */}
       <section className="space-y-6">
-        <div className="max-w-6xl mx-auto px-6 space-y-1">
+        <div className="max-w-6xl mx-auto px-6 space-y-2">
           <span className="text-[11px] font-bold text-emerald-600 uppercase tracking-widest block flex items-center gap-1">
             <MessageSquare size={12}/> Testimoni Wisatawan
           </span>
-          <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight text-neutral-900 uppercase">Apa Kata Mereka?</h2>
+          <h2 className="text-2xl md:text-3xl font-serif font-normal tracking-tight text-neutral-900">Apa Kata Mereka?</h2>
         </div>
 
         <div className="w-full overflow-hidden relative py-4">
           <div className="flex gap-6 w-max animate-marquee hover:[animation-play-state:paused] cursor-pointer">
             {doubleReview.map((item, index) => (
               <div key={`rev-${index}`} className="w-[85vw] sm:w-[45vw] lg:w-[28vw] shrink-0">
-                <div className="bg-white border border-neutral-200/70 p-6 rounded-2xl shadow-[0_4px_25px_rgba(0,0,0,0.01)] flex flex-col justify-between h-full space-y-4 hover:border-emerald-500/30 transition duration-300">
+                <div className="bg-white/70 backdrop-blur-xl border border-white/85 p-6 rounded-[2rem] shadow-xl shadow-slate-200/50 flex flex-col justify-between h-full space-y-4 hover:border-emerald-500/30 transition duration-300">
                   <div className="flex gap-0.5">
                     {[...Array(item.rating)].map((_, idx) => (
                       <Star key={idx} size={14} className="text-amber-400 fill-amber-400" />
                     ))}
                   </div>
-                  <p className="text-xs text-neutral-500 italic leading-relaxed font-light">"{item.text}"</p>
-                  <div className="border-t border-neutral-100 pt-3 flex items-center gap-3">
+                  <p className="text-xs text-neutral-500 italic leading-relaxed font-light">&quot;{item.text}&quot;</p>
+                  <div className="border-t border-neutral-100/60 pt-3 flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center font-bold text-xs text-emerald-600">
                       {item.name[0]}
                     </div>
