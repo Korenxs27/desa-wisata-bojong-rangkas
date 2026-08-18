@@ -48,7 +48,7 @@ export default function Footer() {
         {/* Kolom 2: Tautan Kelembagaan (2/12) */}
         <div className="md:col-span-2 space-y-3">
           <h4 className="text-[10px] font-bold uppercase tracking-widest text-white flex items-center gap-1">
-            <Landmark size={12} className="text-emerald-500" /> Informasi
+ Informasi
           </h4>
           <ul className="space-y-2 text-[11px] font-light">
             {linksMasyarakat.map((item) => (
@@ -77,7 +77,7 @@ export default function Footer() {
 
         {/* Kolom 4: Sekretariat (3/12) */}
         <div className="md:col-span-3 space-y-3">
-          <h4 className="text-[10px] font-bold uppercase tracking-widest text-white">Informasi</h4>
+          <h4 className="text-[10px] font-bold uppercase tracking-widest text-white">Kontak</h4>
           <ul className="space-y-2.5 text-[11px] font-light text-neutral-500">
             <li className="flex gap-2 items-start">
               <MapPin size={14} className="text-emerald-500 shrink-0 mt-0.5" />
