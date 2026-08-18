@@ -168,7 +168,7 @@ export default function ClientOrderForm({ productId, productPrice, stockStatus }
         disabled={isProcessing || stockStatus !== "instock"}
         className="w-full bg-neutral-900 hover:bg-emerald-600 disabled:bg-neutral-200 disabled:text-neutral-400 text-white py-4 rounded-2xl text-xs font-semibold tracking-widest uppercase transition flex items-center justify-center gap-2 shadow-md"
       >
-        <ShoppingBag size={14}/> {isProcessing ? "Memproses..." : "Beli Instan QRIS / VA"}
+        <ShoppingBag size={14}/> {isProcessing ? "Memproses..." : "Beli Sekarang"}
       </button>
     </form>
   );

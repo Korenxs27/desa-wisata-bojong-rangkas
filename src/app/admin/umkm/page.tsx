@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import toast, { Toaster } from "react-hot-toast";
 import { 
   ArrowLeft, Plus, Trash2, ShoppingBag, RefreshCw, PackageCheck, 
   Edit3, X, Upload, Image as ImageIcon, Box, Scale, Hash, Truck, Ruler 
@@ -55,7 +56,6 @@ export default function AdminUMKMPage() {
   const fetchProducts = async () => {
     setLoading(true);
     try {
-      // 🚀 Ditambahkan per_page=100 agar semua produk UMKM terpanggil tanpa batasan pagination default (10 item)
       const res = await fetch(
         `https://desa-wisata-bojongrangkas.biznityhub.com/wp-json/wc/v3/products?per_page=100&consumer_key=${ck}&consumer_secret=${cs}`,
         { cache: "no-store" }
@@ -63,7 +63,6 @@ export default function AdminUMKMPage() {
       const data = await res.json();
       
       if (Array.isArray(data)) {
-        // 🚀 Saring ketat: Buang produk [WISATA], [HOMESTAY], [PAKET], atau yang masuk kategori Booking Engine
         const umkmOnly = data.filter((item: any) => {
           const itemName = (item.name || "").toUpperCase();
           const categories = item.categories || [];
@@ -85,6 +84,7 @@ export default function AdminUMKMPage() {
       }
     } catch (err) {
       console.error("Gagal load produk:", err);
+      toast.error("Gagal memuat data produk UMKM.");
     } finally {
       setLoading(false);
     }
@@ -127,6 +127,7 @@ export default function AdminUMKMPage() {
   const handleSubmitProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    const loadingToast = toast.loading(editingItem ? "Memperbarui produk UMKM..." : "Menambahkan produk UMKM...");
 
     try {
       let mediaId = 0;
@@ -146,7 +147,8 @@ export default function AdminUMKMPage() {
           mediaData = JSON.parse(rawText);
         } catch (e) {
           console.error("Respon Server Bukan JSON:", rawText);
-          alert("Gagal upload: Server mengembalikan format yang tidak valid.");
+          toast.dismiss(loadingToast);
+          toast.error("Gagal upload: Format server tidak valid.");
           setIsSubmitting(false);
           return;
         }
@@ -155,7 +157,8 @@ export default function AdminUMKMPage() {
           mediaId = mediaData.id;
         } else {
           console.error("Gagal upload media:", mediaData);
-          alert(`Gagal mengunggah foto: ${mediaData.message || "Kesalahan server internal"}`);
+          toast.dismiss(loadingToast);
+          toast.error(`Gagal unggah foto: ${mediaData.message || "Kesalahan server"}`);
           setIsSubmitting(false);
           return;
         }
@@ -191,63 +194,97 @@ export default function AdminUMKMPage() {
         body: JSON.stringify(payload),
       });
 
+      toast.dismiss(loadingToast);
+
       if (res.ok) {
-        alert(isEdit ? "Produk UMKM Berhasil Diperbarui!" : "Produk UMKM Berhasil Ditambahkan!");
+        toast.success(isEdit ? "Produk UMKM Berhasil Diperbarui!" : "Produk UMKM Berhasil Ditambahkan!");
         resetForm();
         fetchProducts();
       } else {
         const errData = await res.json();
-        alert(`Gagal menyimpan produk: ${errData.message || "Periksa data"}`);
+        toast.error(`Gagal menyimpan: ${errData.message || "Periksa kembali data"}`);
       }
     } catch (error) {
       console.error("Submit Error:", error);
-      alert("Terjadi kesalahan jaringan.");
+      toast.dismiss(loadingToast);
+      toast.error("Terjadi kesalahan jaringan.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleDeleteProduct = async (id: number) => {
-    if (!confirm("Apakah Anda yakin ingin menghapus produk UMKM ini secara permanen?")) return;
+  toast((t) => (
+    <div className="flex flex-col gap-3">
+      <p className="text-xs font-semibold text-slate-800">
+        Apakah Anda yakin ingin menghapus produk UMKM ini secara permanen?
+      </p>
+      <div className="flex gap-2 justify-end">
+        <button
+          onClick={async () => {
+            toast.dismiss(t.id);
+            
+            const loadingToast = toast.loading("Menghapus produk...");
+            try {
+              const res = await fetch(`https://desa-wisata-bojongrangkas.biznityhub.com/wp-json/wc/v3/products/${id}?force=true&consumer_key=${ck}&consumer_secret=${cs}`, {
+                method: "DELETE",
+              });
 
-    try {
-      const res = await fetch(`https://desa-wisata-bojongrangkas.biznityhub.com/wp-json/wc/v3/products/${id}?force=true&consumer_key=${ck}&consumer_secret=${cs}`, {
-        method: "DELETE",
-      });
+              toast.dismiss(loadingToast);
 
-      if (res.ok) {
-        alert("Produk berhasil dihapus!");
-        setProducts((prev) => prev.filter((item) => item.id !== id));
-      } else {
-        alert("Gagal menghapus produk.");
-      }
-    } catch (error) {
-      alert("Terjadi kesalahan jaringan.");
-    }
-  };
+              if (res.ok) {
+                toast.success("Produk berhasil dihapus!");
+                setProducts((prev) => prev.filter((item) => item.id !== id));
+              } else {
+                toast.error("Gagal menghapus produk.");
+              }
+            } catch (error) {
+              toast.dismiss(loadingToast);
+              toast.error("Terjadi kesalahan jaringan.");
+            }
+          }}
+          className="px-3 py-1.5 bg-red-600 text-white text-[10px] font-bold rounded-lg hover:bg-red-700 transition"
+        >
+          Ya, Hapus
+        </button>
+        <button
+          onClick={() => toast.dismiss(t.id)}
+          className="px-3 py-1.5 bg-slate-100 text-slate-600 text-[10px] font-bold rounded-lg hover:bg-slate-200 transition"
+        >
+          Batal
+        </button>
+      </div>
+    </div>
+  ), { duration: 5000 });
+};
 
   return (
-    <div className="min-h-screen bg-slate-100 p-8">
+    <div className="min-h-screen bg-slate-100 p-4 sm:p-6 lg:p-8">
+      {/* 🟢 TOASTER KHUSUS HALAMAN UMKM */}
+      <Toaster position="top-right" reverseOrder={false} />
+
+      {/* Header Responsif */}
       <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <Link href="/admin" className="p-2.5 bg-white rounded-xl shadow-sm hover:bg-slate-50 transition">
+        <div className="flex items-center gap-3 sm:gap-4">
+          <Link href="/admin" className="p-2.5 bg-white rounded-xl shadow-sm hover:bg-slate-50 transition shrink-0">
             <ArrowLeft size={18} className="text-slate-700" />
           </Link>
           <div>
-            <h1 className="text-xl font-bold text-slate-800">Kelola Produk UMKM Desa</h1>
+            <h1 className="text-lg sm:text-xl font-bold text-slate-800">Kelola Produk UMKM Desa</h1>
             <p className="text-xs text-slate-500">Inventory, Stock, Shipping & Dimensions Sync</p>
           </div>
         </div>
 
-        <button onClick={fetchProducts} className="p-2.5 bg-white rounded-xl text-slate-600 hover:bg-slate-50 transition shadow-sm">
+        <button onClick={fetchProducts} className="p-2.5 bg-white rounded-xl text-slate-600 hover:bg-slate-50 transition shadow-sm shrink-0 flex items-center gap-2 text-xs font-medium">
           <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+          <span className="hidden sm:inline">Refresh Data</span>
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 items-start">
         
         {/* FORM CREATE / EDIT */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/60 h-fit">
+        <div className="bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-200/60">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
               {editingItem ? <Edit3 size={18} className="text-amber-600" /> : <Plus size={18} className="text-emerald-600" />}
@@ -277,18 +314,18 @@ export default function AdminUMKMPage() {
                 <input
                   type="file" accept="image/*"
                   onChange={(e) => setImageFile(e.target.files ? e.target.files[0] : null)}
-                  className="absolute inset-0 opacity-0 cursor-pointer"
+                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                 />
                 <div className="flex flex-col items-center gap-1 text-slate-500">
                   <Upload size={18} className="text-emerald-600" />
-                  <span className="text-[11px] font-medium">
+                  <span className="text-[11px] font-medium truncate max-w-[200px]">
                     {imageFile ? imageFile.name : "Klik untuk unggah foto produk"}
                   </span>
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1">Harga (Rp)</label>
                 <input
@@ -382,7 +419,7 @@ export default function AdminUMKMPage() {
               <textarea
                 rows={3} value={desc} onChange={(e) => setDesc(e.target.value)}
                 placeholder="Deskripsi bahan, rasa, dan keunggulan..."
-                className="w-full px-3.5 py-2 text-xs border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none"
+                className="w-full px-3.5 py-2 text-xs border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none resize-none"
               />
             </div>
 
@@ -398,7 +435,7 @@ export default function AdminUMKMPage() {
         </div>
 
         {/* LIST PRODUK */}
-        <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-slate-200/60">
+        <div className="lg:col-span-2 bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden">
           <h2 className="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
             <PackageCheck size={18} className="text-emerald-600" /> Daftar Produk Aktif ({products.length})
           </h2>
@@ -410,9 +447,9 @@ export default function AdminUMKMPage() {
           ) : (
             <div className="space-y-3">
               {products.map((item) => (
-                <div key={item.id} className="flex items-center justify-between p-4 rounded-xl border border-slate-100 hover:border-slate-200 transition bg-slate-50/50">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-lg bg-slate-200 overflow-hidden relative shrink-0">
+                <div key={item.id} className="p-3.5 sm:p-4 rounded-xl border border-slate-100 hover:border-slate-200 transition bg-slate-50/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 w-full">
+                  <div className="flex items-start sm:items-center gap-3.5 w-full sm:w-auto min-w-0 flex-1">
+                    <div className="w-14 h-14 sm:w-12 sm:h-12 rounded-xl bg-slate-200 overflow-hidden relative shrink-0">
                       {item.images && item.images.length > 0 ? (
                         <img
                           src={item.images[0].src}
@@ -426,17 +463,17 @@ export default function AdminUMKMPage() {
                       )}
                     </div>
 
-                    <div>
-                      <h3 className="font-bold text-sm text-slate-800">{item.name}</h3>
-                      <div className="flex flex-wrap items-center gap-2.5 mt-1 text-xs text-slate-500">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-sm text-slate-800 truncate">{item.name}</h3>
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-slate-500">
                         <span className="font-semibold text-emerald-600">
                           Rp {parseInt(item.price || item.regular_price || "0").toLocaleString("id-ID")}
                         </span>
-                        <span>•</span>
+                        <span className="hidden sm:inline">•</span>
                         <span>Stok: {item.manage_stock ? item.stock_quantity ?? "0" : "Tersedia"}</span>
                         {item.weight && (
                           <>
-                            <span>•</span>
+                            <span className="hidden sm:inline">•</span>
                             <span className="flex items-center gap-0.5 text-slate-600">
                               <Scale size={11}/> {item.weight} kg
                             </span>
@@ -447,20 +484,22 @@ export default function AdminUMKMPage() {
                   </div>
 
                   {/* ACTION BUTTONS */}
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 self-end sm:self-center shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-200/60 w-full sm:w-auto justify-end">
                     <button
                       onClick={() => handleStartEdit(item)}
-                      className="p-2 bg-amber-50 text-amber-600 hover:bg-amber-100 rounded-xl transition"
+                      className="p-2 bg-amber-50 text-amber-600 hover:bg-amber-100 rounded-xl transition flex items-center gap-1.5 text-xs font-semibold px-3 sm:px-2"
                       title="Edit Produk"
                     >
                       <Edit3 size={15} />
+                      <span className="sm:hidden">Edit</span>
                     </button>
                     <button
                       onClick={() => handleDeleteProduct(item.id)}
-                      className="p-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl transition"
+                      className="p-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl transition flex items-center gap-1.5 text-xs font-semibold px-3 sm:px-2"
                       title="Hapus Produk"
                     >
                       <Trash2 size={15} />
+                      <span className="sm:hidden">Hapus</span>
                     </button>
                   </div>
                 </div>

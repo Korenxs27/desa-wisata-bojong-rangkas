@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import toast, { Toaster } from "react-hot-toast";
 import { 
   ArrowLeft, Plus, Home, RefreshCw, User, Tag, 
   Edit3, Trash2, X, Upload, Image as ImageIcon 
@@ -36,6 +37,7 @@ export default function AdminHomestayPage() {
       if (Array.isArray(data)) setHomestays(data);
     } catch (err) {
       console.error("Gagal load data CPT Homestay:", err);
+      toast.error("Gagal memuat data Homestay.");
     } finally {
       setLoading(false);
     }
@@ -68,51 +70,55 @@ export default function AdminHomestayPage() {
     setImageFile(null);
   };
 
- const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setIsSubmitting(true);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    const loadingToast = toast.loading(editingItem ? "Memperbarui homestay..." : "Menambahkan homestay...");
 
-  try {
-    const formData = new FormData();
-    if (editingItem) formData.append("item_id", String(editingItem.id));
-    formData.append("post_type", "homestay"); // 👈 Dipastikan masuk CPT Homestay!
-    formData.append("title", title);
-    formData.append("nama_pemilik", namaPemilik);
-    formData.append("harga", harga);
-    formData.append("kapasitas", String(kapasitas));
-    formData.append("jumlah_kamar", String(jumlahKamar));
-    formData.append("fasilitas", fasilitasInput);
-    formData.append("content", deskripsi);
+    try {
+      const formData = new FormData();
+      if (editingItem) formData.append("item_id", String(editingItem.id));
+      formData.append("post_type", "homestay"); 
+      formData.append("title", title);
+      formData.append("nama_pemilik", namaPemilik);
+      formData.append("harga", harga);
+      formData.append("kapasitas", String(kapasitas));
+      formData.append("jumlah_kamar", String(jumlahKamar));
+      formData.append("fasilitas", fasilitasInput);
+      formData.append("content", deskripsi);
 
-    if (imageFile) {
-      formData.append("image_file", imageFile); // 👈 File gambar dikirim langsung
+      if (imageFile) {
+        formData.append("image_file", imageFile); 
+      }
+
+      const res = await fetch("https://desa-wisata-bojongrangkas.biznityhub.com/wp-json/wc-bridge/v1/upsert-item", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      toast.dismiss(loadingToast);
+
+      if (res.ok && data.success) {
+        toast.success(editingItem ? "Homestay Berhasil Diperbarui!" : "Homestay Berhasil Ditambahkan!");
+        resetForm();
+        fetchHomestayData();
+      } else {
+        toast.error(`Gagal menyimpan: ${data.message || "Terjadi kesalahan pada server"}`);
+      }
+    } catch (error) {
+      console.error("Submit Error:", error);
+      toast.dismiss(loadingToast);
+      toast.error("Terjadi kesalahan jaringan.");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    const res = await fetch("https://desa-wisata-bojongrangkas.biznityhub.com/wp-json/wc-bridge/v1/upsert-item", {
-      method: "POST",
-      body: formData,
-    });
-
-    const data = await res.json();
-
-    if (res.ok && data.success) {
-      alert(editingItem ? "Homestay Berhasil Diperbarui!" : "Homestay Berhasil Ditambahkan!");
-      resetForm();
-      fetchHomestayData();
-    } else {
-      alert(`Gagal menyimpan: ${data.message || "Terjadi kesalahan pada server"}`);
-    }
-  } catch (error) {
-    console.error("Submit Error:", error);
-    alert("Terjadi kesalahan jaringan.");
-  } finally {
-    setIsSubmitting(false);
-  }
-};
+  };
 
   const handleDelete = async (id: number, wcProductId?: number) => {
     if (!confirm("Apakah Anda yakin ingin menghapus Homestay ini secara permanen?")) return;
 
+    const loadingToast = toast.loading("Menghapus homestay...");
     try {
       const res = await fetch("https://desa-wisata-bojongrangkas.biznityhub.com/wp-json/wc-bridge/v1/delete-item", {
         method: "DELETE",
@@ -124,39 +130,46 @@ export default function AdminHomestayPage() {
       });
 
       const data = await res.json();
+      toast.dismiss(loadingToast);
 
       if (res.ok && data.success) {
-        alert("Homestay berhasil dihapus!");
+        toast.success("Homestay berhasil dihapus!");
         setHomestays((prev) => prev.filter((item) => item.id !== id));
       } else {
-        alert(`Gagal Menghapus: ${data.message || "Periksa koneksi backend."}`);
+        toast.error(`Gagal Menghapus: ${data.message || "Periksa koneksi backend."}`);
       }
     } catch (error) {
       console.error("Delete Homestay Error:", error);
-      alert("Terjadi kesalahan jaringan saat menghapus Homestay.");
+      toast.dismiss(loadingToast);
+      toast.error("Terjadi kesalahan jaringan saat menghapus Homestay.");
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 p-8">
+    <div className="min-h-screen bg-slate-100 p-4 sm:p-6 lg:p-8">
+      {/* 🟢 TOASTER MANDIRI KHUSUS HALAMAN HOMESTAY */}
+      <Toaster position="top-right" reverseOrder={false} />
+
+      {/* Header Responsif */}
       <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <Link href="/admin" className="p-2.5 bg-white rounded-xl shadow-sm hover:bg-slate-50 transition">
+        <div className="flex items-center gap-3 sm:gap-4">
+          <Link href="/admin" className="p-2.5 bg-white rounded-xl shadow-sm hover:bg-slate-50 transition shrink-0">
             <ArrowLeft size={18} className="text-slate-700" />
           </Link>
           <div>
-            <h1 className="text-xl font-bold text-slate-800">Kelola Homestay Warga</h1>
+            <h1 className="text-lg sm:text-xl font-bold text-slate-800">Kelola Homestay Warga</h1>
             <p className="text-xs text-slate-500">Full CRUD: Tambah, Edit, dan Hapus Homestay Warga</p>
           </div>
         </div>
 
-        <button onClick={fetchHomestayData} className="p-2.5 bg-white rounded-xl text-slate-600 hover:bg-slate-50 transition shadow-sm">
+        <button onClick={fetchHomestayData} className="p-2.5 bg-white rounded-xl text-slate-600 hover:bg-slate-50 transition shadow-sm shrink-0 flex items-center gap-2 text-xs font-medium">
           <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+          <span className="hidden sm:inline">Refresh Data</span>
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/60 h-fit">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 items-start">
+        <div className="bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-200/60">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
               {editingItem ? <Edit3 size={18} className="text-amber-600" /> : <Plus size={18} className="text-emerald-600" />}
@@ -185,11 +198,11 @@ export default function AdminHomestayPage() {
                 <input
                   type="file" accept="image/*"
                   onChange={(e) => setImageFile(e.target.files ? e.target.files[0] : null)}
-                  className="absolute inset-0 opacity-0 cursor-pointer"
+                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                 />
                 <div className="flex flex-col items-center gap-1 text-slate-500">
                   <Upload size={18} className="text-emerald-600" />
-                  <span className="text-[11px] font-medium">
+                  <span className="text-[11px] font-medium truncate max-w-[200px]">
                     {imageFile ? imageFile.name : "Klik untuk pilih/ganti foto"}
                   </span>
                 </div>
@@ -238,7 +251,7 @@ export default function AdminHomestayPage() {
               <textarea
                 rows={3} required value={deskripsi} onChange={(e) => setDeskripsi(e.target.value)}
                 placeholder="Detail informasi homestay..."
-                className="w-full px-3.5 py-2 text-xs border rounded-xl outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3.5 py-2 text-xs border rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
               />
             </div>
 
@@ -253,7 +266,7 @@ export default function AdminHomestayPage() {
           </form>
         </div>
 
-        <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-slate-200/60">
+        <div className="lg:col-span-2 bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden">
           <h2 className="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
             <Home size={18} className="text-emerald-600" /> Daftar Homestay Aktif ({homestays.length})
           </h2>
@@ -263,11 +276,11 @@ export default function AdminHomestayPage() {
           ) : homestays.length === 0 ? (
             <div className="py-12 text-center text-xs text-slate-400">Belum ada Homestay.</div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {homestays.map((item) => (
-                <div key={item.id} className="p-4 rounded-xl border border-slate-100 hover:border-slate-200 transition bg-slate-50/50 flex items-start justify-between">
-                  <div className="flex items-start gap-3">
-                    <div className="w-12 h-12 rounded-lg bg-slate-200 overflow-hidden relative shrink-0 mt-0.5">
+                <div key={item.id} className="p-3.5 sm:p-4 rounded-xl border border-slate-100 hover:border-slate-200 transition bg-slate-50/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 w-full">
+                  <div className="flex items-start sm:items-center gap-3.5 w-full sm:w-auto min-w-0 flex-1">
+                    <div className="w-14 h-14 sm:w-12 sm:h-12 rounded-xl bg-slate-200 overflow-hidden relative shrink-0">
                       {item._embedded?.["wp:featuredmedia"]?.[0]?.source_url ? (
                         <img
                           src={item._embedded["wp:featuredmedia"][0].source_url}
@@ -281,13 +294,13 @@ export default function AdminHomestayPage() {
                       )}
                     </div>
 
-                    <div>
-                      <h3 className="font-bold text-sm text-slate-800">{item.title?.rendered}</h3>
-                      <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-sm text-slate-800 truncate">{item.title?.rendered}</h3>
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-slate-500">
                         <span className="flex items-center gap-1 font-semibold text-slate-700">
                           <User size={12} className="text-slate-400" /> Pemilik: {item.acf?.nama_pemilik || "-"}
                         </span>
-                        <span>•</span>
+                        <span className="hidden sm:inline">•</span>
                         <span className="flex items-center gap-1 font-bold text-emerald-600">
                           <Tag size={12} /> Rp {parseInt(String(item.acf?.harga_per_malam || "0")).toLocaleString("id-ID")} / malam
                         </span>
@@ -295,20 +308,22 @@ export default function AdminHomestayPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-2 self-end sm:self-center shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-200/60 w-full sm:w-auto justify-end">
                     <button
                       onClick={() => handleStartEdit(item)}
-                      className="p-2 bg-amber-50 text-amber-600 hover:bg-amber-100 rounded-xl transition"
+                      className="p-2 bg-amber-50 text-amber-600 hover:bg-amber-100 rounded-xl transition flex items-center gap-1.5 text-xs font-semibold px-3 sm:px-2"
                       title="Edit Item"
                     >
                       <Edit3 size={15} />
+                      <span className="sm:hidden">Edit</span>
                     </button>
                     <button
                       onClick={() => handleDelete(item.id, item.acf?.produk_woocommerce_terkait)}
-                      className="p-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl transition"
+                      className="p-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl transition flex items-center gap-1.5 text-xs font-semibold px-3 sm:px-2"
                       title="Hapus Item"
                     >
                       <Trash2 size={15} />
+                      <span className="sm:hidden">Hapus</span>
                     </button>
                   </div>
                 </div>

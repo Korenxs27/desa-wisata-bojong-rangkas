@@ -20,9 +20,6 @@ export default async function KatalogHomestayPage() {
         
         {/* Header (Centered) */}
         <div className="space-y-3 text-center max-w-xl mx-auto">
-          <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/80 backdrop-blur-md border border-slate-200/80 shadow-sm text-emerald-700 text-[10px] font-extrabold uppercase tracking-widest">
-            <span>🏡</span> Hunian Otentik Warga
-          </div>
           <h1 className="text-3xl md:text-5xl font-serif font-normal tracking-tight text-neutral-900">
             Homestay Desa Bojong Rangkas
           </h1>

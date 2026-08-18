@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import toast, { Toaster } from "react-hot-toast";
 import { ArrowLeft, Save, Loader2, LayoutTemplate, Image as ImageIcon, Type } from "lucide-react";
 
 export default function AdminBerandaPage() {
@@ -52,6 +53,7 @@ export default function AdminBerandaPage() {
         }
       } catch (err) {
         console.error("Gagal memuat data beranda admin:", err);
+        toast.error("Gagal memuat data beranda.");
       } finally {
         setLoading(false);
       }
@@ -90,6 +92,7 @@ export default function AdminBerandaPage() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
+    const loadingToast = toast.loading("Menyimpan pengaturan beranda...");
 
     const formData = new FormData();
     formData.append("hero", JSON.stringify(hero));
@@ -106,9 +109,10 @@ export default function AdminBerandaPage() {
         body: formData,
       });
       const data = await res.json();
+      toast.dismiss(loadingToast);
       
       if (data.success) {
-        alert("Pengaturan beranda berhasil diperbarui!");
+        toast.success("Pengaturan beranda berhasil diperbarui!");
         if (data.profil?.hero) {
           setHero(data.profil.hero);
         }
@@ -117,11 +121,12 @@ export default function AdminBerandaPage() {
         }
         setImageFile(null);
       } else {
-        alert("Gagal menyimpan pengaturan beranda.");
+        toast.error("Gagal menyimpan pengaturan beranda.");
       }
     } catch (err) {
       console.error(err);
-      alert("Terjadi kesalahan jaringan.");
+      toast.dismiss(loadingToast);
+      toast.error("Terjadi kesalahan jaringan.");
     } finally {
       setSaving(false);
     }
@@ -136,7 +141,10 @@ export default function AdminBerandaPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-8 text-slate-800 font-sans">
+    <div className="min-h-screen bg-slate-100 p-4 sm:p-6 lg:p-8 text-slate-800 font-sans">
+      {/* 🟢 TOASTER MANDIRI KHUSUS HALAMAN BERANDA */}
+      <Toaster position="top-right" reverseOrder={false} />
+
       <div className="max-w-4xl mx-auto space-y-8">
         
         <div className="flex items-center justify-between bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">

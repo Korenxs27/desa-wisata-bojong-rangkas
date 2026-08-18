@@ -50,7 +50,33 @@ export default async function ProdukPage() {
       per_page: 20
     });
     
-    products = response.data || response; 
+    const rawProducts = response.data || response; 
+
+    // 🔍 1. FILTER: Saring produk agar [BOOKING] atau Tiket tidak ikut tampil di UMKM
+    const filteredProducts = rawProducts.filter((product: ProdukDesa) => {
+      const name = product.name.toLowerCase();
+      const isBooking = name.includes("[booking]") || name.includes("tiket");
+      return !isBooking; 
+    });
+
+    // ✂️ 2. OTOMATISASI: Jika short_description kosong, ambil dari description panjang lalu potong
+    products = filteredProducts.map((product: ProdukDesa) => {
+      if (!product.short_description || product.short_description.trim() === "") {
+        if (product.description) {
+          // Bersihkan tag HTML dari deskripsi panjang
+          const cleanText = product.description.replace(/<[^>]+>/g, "");
+          // Potong teks misal maksimal 12 kata agar pas di card
+          const words = cleanText.split(/\s+/);
+          const truncated = words.length > 12 ? words.slice(0, 12).join(" ") + "..." : cleanText;
+          return {
+            ...product,
+            short_description: truncated
+          };
+        }
+      }
+      return product;
+    });
+
   } catch (error) {
     console.error("Gagal mengambil data dari WooCommerce:", error);
     errorMessage = "Gagal memuat data komplit dari server WooCommerce.";
@@ -159,7 +185,7 @@ export default async function ProdukPage() {
                       </Link>
                     </div>
 
-                    {/* Short Description */}
+                    {/* Short Description (Otomatis terpotong dari deskripsi panjang jika kosong) */}
                     <div 
                       className="text-xs text-neutral-500 font-light line-clamp-2 leading-relaxed" 
                       dangerouslySetInnerHTML={{ __html: product.short_description || "Tidak ada deskripsi singkat." }} 

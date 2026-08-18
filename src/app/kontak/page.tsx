@@ -137,7 +137,7 @@ export default function KontakPage() {
                   </>
                 ) : (
                   <>
-                    Kirim Aspirasi <Send size={12} />
+                    Kirim Pesan <Send size={12} />
                   </>
                 )}
               </button>

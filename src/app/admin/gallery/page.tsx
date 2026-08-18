@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import toast from "react-hot-toast";
 import { ArrowLeft, Upload, Trash2, Loader2, Image as ImageIcon } from "lucide-react";
 
 export default function AdminGalleryPage() {
@@ -24,6 +25,7 @@ export default function AdminGalleryPage() {
       }
     } catch (err) {
       console.error(err);
+      toast.error("Gagal memuat daftar galeri.");
     } finally {
       setLoading(false);
     }
@@ -36,11 +38,12 @@ export default function AdminGalleryPage() {
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file) {
-      alert("Pilih foto terlebih dahulu dari device kamu!");
+      toast.error("Pilih foto terlebih dahulu dari device kamu!");
       return;
     }
 
     setUploading(true);
+    const loadingToast = toast.loading("Mengunggah foto ke server...");
     const formData = new FormData();
     formData.append("title", title || "Dokumentasi Desa");
     formData.append("category", category || "Umum");
@@ -52,19 +55,21 @@ export default function AdminGalleryPage() {
         body: formData,
       });
       const data = await res.json();
+      toast.dismiss(loadingToast);
 
       if (data.success) {
-        alert("Foto berhasil diunggah!");
+        toast.success("Foto berhasil diunggah!");
         setTitle("");
         setCategory("");
         setFile(null);
         fetchGallery();
       } else {
-        alert("Gagal mengunggah foto.");
+        toast.error("Gagal mengunggah foto.");
       }
     } catch (err) {
       console.error(err);
-      alert("Terjadi kesalahan jaringan.");
+      toast.dismiss(loadingToast);
+      toast.error("Terjadi kesalahan jaringan.");
     } finally {
       setUploading(false);
     }
@@ -73,24 +78,29 @@ export default function AdminGalleryPage() {
   const handleDelete = async (id: number) => {
     if (!confirm("Yakin ingin menghapus foto ini dari server?")) return;
 
+    const loadingToast = toast.loading("Menghapus foto...");
     try {
       const res = await fetch(`${apiEndpoint}?id=${id}`, {
         method: "DELETE",
       });
       const data = await res.json();
+      toast.dismiss(loadingToast);
+
       if (data.success) {
+        toast.success("Foto berhasil dihapus!");
         setGallery((prev) => prev.filter((item) => item.id !== id));
       } else {
-        alert("Gagal menghapus foto dari server.");
+        toast.error("Gagal menghapus foto dari server.");
       }
     } catch (err) {
       console.error(err);
-      alert("Gagal terhubung ke server WordPress.");
+      toast.dismiss(loadingToast);
+      toast.error("Gagal terhubung ke server WordPress.");
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 p-8 text-slate-800 font-sans">
+    <div className="min-h-screen bg-slate-100 p-4 sm:p-6 lg:p-8 text-slate-800 font-sans">
       <div className="max-w-5xl mx-auto space-y-8">
         
         <div className="flex items-center justify-between bg-white p-6 rounded-3xl border border-slate-200/85 shadow-sm">

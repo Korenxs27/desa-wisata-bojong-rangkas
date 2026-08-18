@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
   User, LogOut, Compass, MapPin, Bookmark, Settings, 
-  ArrowRight, ShieldCheck, Camera, History, Edit3, CheckCircle2, Package, Clock, AlertTriangle, RefreshCw, Trash2
+  ArrowRight, ShieldCheck, Camera, History, Edit3, CheckCircle2, Package, Clock, AlertTriangle, RefreshCw, Trash2, Loader2
 } from 'lucide-react';
 
 export default function UserDashboard() {
@@ -14,6 +14,7 @@ export default function UserDashboard() {
   const [userEmail, setUserEmail] = useState('');
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   // State untuk form Edit Profil
   const [isEditing, setIsEditing] = useState(false);
@@ -82,21 +83,49 @@ export default function UserDashboard() {
     router.refresh();
   };
 
-  // Handle Ganti Foto Profil (Upload gambar aman dari error tipe)
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle Ganti Foto Profil (Upload ke WordPress Backend agar tidak melebihi kuota LocalStorage)
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === 'string') {
-          const base64String = reader.result;
-          setUserAvatar(base64String);
-          localStorage.setItem('user_avatar', base64String);
-          setSuccessMsg('Foto profil berhasil diperbarui!');
-          setTimeout(() => setSuccessMsg(''), 3000);
-        }
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    setIsUploadingAvatar(true);
+    const formData = new FormData();
+    formData.append("image_file", file);
+
+    try {
+      // Menggunakan endpoint upload gambar WordPress yang sudah ada
+      const res = await fetch("https://desa-wisata-bojongrangkas.biznityhub.com/wp-json/wc-bridge/v1/upload-image", {
+        method: "POST",
+        body: formData,
+      });
+
+      const rawText = await res.text();
+      let mediaData;
+      try {
+        mediaData = JSON.parse(rawText);
+      } catch (err) {
+        console.error("Respon Server Bukan JSON:", rawText);
+        alert("Gagal upload: Format server tidak valid.");
+        setIsUploadingAvatar(false);
+        return;
+      }
+
+      if (res.ok && mediaData.success && (mediaData.url || mediaData.source_url)) {
+        const avatarUrl = mediaData.url || mediaData.source_url;
+        
+        // HANYA SIMPAN URL (STRING PENDEK) KE LOCALSTORAGE - AMAN DARI QUOTA EXCEEDED
+        setUserAvatar(avatarUrl);
+        localStorage.setItem('user_avatar', avatarUrl);
+        setSuccessMsg('Foto profil berhasil diperbarui!');
+        setTimeout(() => setSuccessMsg(''), 3000);
+      } else {
+        alert(`Gagal mengunggah foto: ${mediaData.message || "Kesalahan server"}`);
+      }
+    } catch (err) {
+      console.error("Upload Avatar Error:", err);
+      alert("Terjadi kesalahan jaringan saat mengunggah foto.");
+    } finally {
+      setIsUploadingAvatar(false);
     }
   };
 
@@ -151,7 +180,9 @@ export default function UserDashboard() {
           <div className="relative z-10 flex items-center gap-5">
             <div className="relative group shrink-0">
               <div className="w-20 h-20 rounded-full bg-white/20 backdrop-blur-md border-2 border-white/40 overflow-hidden flex items-center justify-center text-white text-2xl font-serif shadow-md">
-                {userAvatar ? (
+                {isUploadingAvatar ? (
+                  <Loader2 className="animate-spin text-white" size={24} />
+                ) : userAvatar ? (
                   <img src={userAvatar} alt="Avatar" className="w-full h-full object-cover" />
                 ) : (
                   userName.charAt(0).toUpperCase()

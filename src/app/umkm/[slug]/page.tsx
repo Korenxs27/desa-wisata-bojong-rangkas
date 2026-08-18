@@ -47,9 +47,12 @@ export default async function UMKMDetailPage({ params }: { params: Promise<{ slu
   let product: ProdukDesa | null = null;
 
   try {
-    const response = await wcApi.get("products");
-    const found = response.data.find((p: any) => p.slug === slug);
-    product = found || null;
+    const response = await wcApi.get("products", { slug: slug });
+    const products = response.data || response;
+    
+    if (products && products.length > 0) {
+      product = products[0];
+    }
   } catch (error) {
     console.error("Gagal memuat detail produk WooCommerce:", error);
   }

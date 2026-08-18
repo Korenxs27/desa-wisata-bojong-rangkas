@@ -21,7 +21,7 @@ export async function loginAction(formData: FormData) {
       (usernameOrEmail === 'faqihhasan217@gmail.com' || 
        usernameOrEmail === 'desawisatabojongrangkas' ||
        usernameOrEmail === 'faqihhasan') && 
-      password === 'Renxs275*';
+      password === 'bojongrangkas2026';
 
     if (isAdminAccount) {
       return {

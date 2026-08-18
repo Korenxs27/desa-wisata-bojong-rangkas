@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import toast, { Toaster } from "react-hot-toast";
 import { 
   LayoutDashboard, 
   MapPin, 
@@ -22,7 +23,9 @@ import {
   Users,
   Eye,
   X,
-  Menu
+  Menu,
+  CheckCheck,
+  Search
 } from "lucide-react";
 
 export default function AdminDashboard() {
@@ -31,9 +34,13 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
   
   // State untuk Modal Detail Booking
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
+
+  // State untuk Filter Kotak Masuk Pesan
+  const [messageSearch, setMessageSearch] = useState("");
   
   // State Statistik Data dari WordPress, WooCommerce, & Galeri
   const [stats, setStats] = useState({
@@ -69,10 +76,15 @@ export default function AdminDashboard() {
     setLoading(true);
     setRefreshing(true);
     try {
-      const [catRes, usersRes] = await Promise.all([
-        fetch(`${wpUrl}/wp/v2/categories?per_page=1`),
-        fetch(`${wpUrl}/wp/v2/users?per_page=1`),
-      ]);
+      // Mengambil total kategori dan daftar semua user secara langsung dari WordPress REST API
+     // Ganti bagian fetch users di dalam fungsi fetchAllAdminData menjadi ini:
+const [catRes, usersRes] = await Promise.all([
+  fetch(`${wpUrl}/wp/v2/categories?per_page=1`),
+  fetch(`${wpUrl}/wp/v2/users/count`),
+]);
+
+const userCountJson = await usersRes.json();
+const realTotalUsers = typeof userCountJson === 'number' ? userCountJson : 0;
 
       let totalGalleryCount = 0;
       try {
@@ -115,7 +127,7 @@ export default function AdminDashboard() {
       setStats({
         totalGallery: totalGalleryCount,
         categories: parseInt(catRes.headers.get("X-WP-Total") || "0", 10),
-        users: parseInt(usersRes.headers.get("X-WP-Total") || "0", 10),
+        users: realTotalUsers > 0 ? realTotalUsers : parseInt(usersRes.headers.get("X-WP-Total") || "0", 10), // Total user riil terhitung akurat
         totalOrders: realTotalOrders,
         revenue: realRevenue,
       });
@@ -131,6 +143,45 @@ export default function AdminDashboard() {
     }
   };
 
+  // Fungsi Konfirmasi Pembayaran Menjadi Paid (Processing) dengan Toast Modern (Tanpa Alert Bawaan)
+  const handleMarkAsPaid = async (orderId: number) => {
+    setUpdatingStatus(true);
+    const loadingToast = toast.loading("Memperbarui status pembayaran...", {
+      style: { borderRadius: '16px', background: '#334155', color: '#fff', fontSize: '12px' }
+    });
+
+    try {
+      const res = await fetch(`${wpUrl}/wc-bridge/v1/update-order-status`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ order_id: orderId, status: "processing" })
+      });
+      const data = await res.json();
+      toast.dismiss(loadingToast);
+
+      if (res.ok && data.success) {
+        toast.success(`Pesanan #${orderId} berhasil dikonfirmasi Lunas!`, {
+          style: { borderRadius: '16px', background: '#065f46', color: '#fff', fontSize: '12px' },
+          iconTheme: { primary: '#34d399', secondary: '#065f46' }
+        });
+        setSelectedOrder(null);
+        fetchAllAdminData();
+      } else {
+        toast.error(`Gagal memperbarui status: ${data.message || "Kesalahan server"}`, {
+          style: { borderRadius: '16px', fontSize: '12px' }
+        });
+      }
+    } catch (err) {
+      console.error("Update Status Error:", err);
+      toast.dismiss(loadingToast);
+      toast.error("Terjadi kesalahan jaringan.", {
+        style: { borderRadius: '16px', fontSize: '12px' }
+      });
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
   const handleAdminLogout = () => {
     localStorage.removeItem("admin_token");
     localStorage.removeItem("admin_name");
@@ -139,10 +190,22 @@ export default function AdminDashboard() {
     router.refresh();
   };
 
+  // Filter Pesan berdasarkan pencarian nama atau isi pesan
+  const filteredMessages = messages.filter((msg) => {
+    const query = messageSearch.toLowerCase();
+    const nameMatch = msg.nama?.toLowerCase().includes(query);
+    const emailMatch = msg.email?.toLowerCase().includes(query);
+    const contentMatch = msg.pesan?.toLowerCase().includes(query);
+    return nameMatch || emailMatch || contentMatch;
+  });
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/20 to-slate-100 flex flex-col md:flex-row text-slate-800 font-sans relative">
+    <div className={`min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/20 to-slate-100 flex flex-col md:flex-row text-slate-800 font-sans relative ${isMobileSidebarOpen ? 'overflow-hidden h-screen' : ''}`}>
       
-      {/* 🟢 SIDEBAR DESKTOP (Fixed di kiri khusus layar MD ke atas) */}
+      {/* 🟢 REACT HOT TOAST CONTAINER */}
+      <Toaster position="top-right" reverseOrder={false} />
+
+      {/* 🟢 SIDEBAR DESKTOP */}
       <aside className="hidden md:flex w-64 bg-white/85 backdrop-blur-xl border-r border-slate-200/85 flex-col justify-between p-5 fixed h-full z-40 shadow-sm">
         <div>
           <div className="pb-6 mb-6 border-b border-slate-100 flex items-center gap-3">
@@ -166,11 +229,11 @@ export default function AdminDashboard() {
               Kelola Konten Desa
             </div>
             <Link href="/admin/beranda" className="flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-slate-600 hover:bg-emerald-50 hover:text-emerald-600 transition">
-    <Home size={16} /> Beranda
-  </Link>
-            <Link href="/admin/profil" onClick={() => setIsMobileSidebarOpen(false)} className="flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-slate-600 hover:bg-emerald-50">
-  <Landmark size={16} /> Profil Desa
-</Link>
+              <Home size={16} /> Beranda
+            </Link>
+            <Link href="/admin/profil" className="flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-slate-600 hover:bg-emerald-50 hover:text-emerald-600 transition">
+              <Landmark size={16} /> Profil Desa
+            </Link>
             <Link href="/admin/wisata" className="flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 transition">
               <MapPin size={16} /> Wisata
             </Link>
@@ -199,10 +262,10 @@ export default function AdminDashboard() {
         </div>
       </aside>
 
-      {/* 🟢 SIDEBAR MOBILE DRAWER (Muncul saat tombol hamburger diklik di HP) */}
+      {/* 🟢 SIDEBAR MOBILE DRAWER */}
       {isMobileSidebarOpen && (
-        <div className="md:hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex">
-          <div className="w-72 bg-white h-full shadow-2xl p-5 flex flex-col justify-between animate-in slide-in-from-left duration-200">
+        <div className="md:hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex">
+          <div className="w-72 bg-white fixed inset-y-0 left-0 z-50 shadow-2xl p-5 flex flex-col justify-between animate-in slide-in-from-left duration-200 overflow-y-auto">
             <div>
               <div className="flex justify-between items-center pb-6 mb-6 border-b border-slate-100">
                 <div className="flex items-center gap-3">
@@ -229,9 +292,12 @@ export default function AdminDashboard() {
                 <div className="pt-4 pb-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2">
                   Kelola Konten Desa
                 </div>
+                <Link href="/admin/beranda" onClick={() => setIsMobileSidebarOpen(false)} className="flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-slate-600 hover:bg-emerald-50">
+                  <Home size={16} /> Beranda
+                </Link>
                 <Link href="/admin/profil" onClick={() => setIsMobileSidebarOpen(false)} className="flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-slate-600 hover:bg-emerald-50">
-  <Landmark size={16} /> Profil Desa
-</Link>
+                  <Landmark size={16} /> Profil Desa
+                </Link>
                 <Link href="/admin/wisata" onClick={() => setIsMobileSidebarOpen(false)} className="flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-slate-600 hover:bg-emerald-50">
                   <MapPin size={16} /> Wisata
                 </Link>
@@ -275,7 +341,6 @@ export default function AdminDashboard() {
                 Pusat kendali pariwisata dan transaksi pembayaran.
               </p>
             </div>
-            {/* Tombol Hamburger khusus HP */}
             <button
               onClick={() => setIsMobileSidebarOpen(true)}
               className="md:hidden p-2.5 rounded-2xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition"
@@ -342,7 +407,7 @@ export default function AdminDashboard() {
               <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl"><Users size={18} /></div>
             </div>
             <div className="text-xl sm:text-2xl font-black text-slate-900">{loading ? "..." : stats.users} Pengguna</div>
-            <p className="text-[11px] text-amber-600 font-semibold mt-1">Terdaftar</p>
+            <p className="text-[11px] text-amber-600 font-semibold mt-1">Terdaftar di WP</p>
           </div>
         </div>
 
@@ -351,7 +416,7 @@ export default function AdminDashboard() {
           <div className="flex justify-between items-center mb-6">
             <div>
               <h2 className="text-sm sm:text-base font-bold text-slate-900">Daftar Pesanan & Status Pembayaran</h2>
-              <p className="text-[11px] sm:text-xs text-slate-500">Klik baris pesanan untuk melihat detail booking user.</p>
+              <p className="text-[11px] sm:text-xs text-slate-500">Klik tombol detail untuk konfirmasi status pembayaran dan melihat tanggal reservasi.</p>
             </div>
             <span className="text-[10px] sm:text-xs font-semibold text-emerald-600 bg-emerald-50 px-2.5 sm:px-3 py-1.5 rounded-xl">
               List Orders
@@ -379,23 +444,14 @@ export default function AdminDashboard() {
                   </tr>
                 ) : (
                   orders.map((order, index) => (
-                    <tr 
-                      key={index} 
-                      onClick={() => setSelectedOrder(order)}
-                      className="hover:bg-emerald-50/40 transition cursor-pointer"
-                      title="Klik untuk melihat detail booking"
-                    >
+                    <tr key={index} className="hover:bg-slate-50/80 transition">
                       <td className="py-4 font-bold text-slate-900">#{order.id}</td>
                       <td className="py-4 font-semibold text-slate-700">
-                        {order.billing?.first_name || "Pelanggan"}
+                        {order.billing?.first_name || order.billing?.last_name ? `${order.billing?.first_name || ''} ${order.billing?.last_name || ''}`.trim() : "Pelanggan"}
                         <div className="text-[11px] text-slate-400 font-normal">{order.billing?.email}</div>
                       </td>
-                      <td className="py-4 text-slate-600 font-medium">
-                        {order.line_items_name || "Booking Wisata / Homestay"}
-                      </td>
-                      <td className="py-4 font-bold text-slate-900">
-                        Rp {Number(order.total || 0).toLocaleString("id-ID")}
-                      </td>
+                      <td className="py-4 text-slate-600 font-medium">{order.line_items_name || "Booking Wisata / Homestay"}</td>
+                      <td className="py-4 font-bold text-slate-900">Rp {Number(order.total || 0).toLocaleString("id-ID")}</td>
                       <td className="py-4">
                         {order.status === "completed" || order.status === "processing" ? (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-full font-bold text-[10px] sm:text-[11px]">
@@ -408,9 +464,12 @@ export default function AdminDashboard() {
                         )}
                       </td>
                       <td className="py-4 text-right">
-                        <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-100 hover:bg-emerald-600 hover:text-white text-slate-700 rounded-xl font-semibold transition">
+                        <button 
+                          onClick={() => setSelectedOrder(order)}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-100 hover:bg-emerald-600 hover:text-white text-slate-700 rounded-xl font-semibold transition cursor-pointer"
+                        >
                           <Eye size={13} /> Detail
-                        </span>
+                        </button>
                       </td>
                     </tr>
                   ))
@@ -420,9 +479,9 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* ✉️ KOTAK MASUK PESAN & ASPIRASI */}
-        <div className="bg-white/80 backdrop-blur-md p-5 sm:p-6 rounded-3xl shadow-sm border border-slate-200/60">
-          <div className="flex justify-between items-center mb-6">
+        {/* ✉️ KOTAK MASUK PESAN & ASPIRASI (DENGAN FITUR FILTER/PENCARIAN) */}
+        <div className="bg-white/80 backdrop-blur-md p-5 sm:p-6 rounded-3xl shadow-sm border border-slate-200/60 space-y-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div className="flex items-center gap-3">
               <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-2xl"><MessageSquare size={18} /></div>
               <div>
@@ -430,9 +489,20 @@ export default function AdminDashboard() {
                 <p className="text-[11px] sm:text-xs text-slate-500">Pesan dari halaman kontak.</p>
               </div>
             </div>
-            <span className="text-[10px] sm:text-xs font-semibold text-emerald-600 bg-emerald-50 px-2.5 sm:px-3 py-1.5 rounded-xl">
-              List Pesan
-            </span>
+            
+            {/* 🔍 INPUT FILTER PENCARIAN PESAN */}
+            <div className="relative w-full sm:w-64">
+              <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                <Search size={14} />
+              </span>
+              <input 
+                type="text"
+                placeholder="Cari nama atau isi pesan..."
+                value={messageSearch}
+                onChange={(e) => setMessageSearch(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-800 focus:outline-none focus:border-emerald-500 transition"
+              />
+            </div>
           </div>
 
           <div className="overflow-x-auto">
@@ -446,14 +516,14 @@ export default function AdminDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {messages.length === 0 ? (
+                {filteredMessages.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="py-8 text-center text-slate-400 italic">
-                      Belum ada pesan yang masuk dari halaman kontak.
+                      {messageSearch ? "Tidak ada pesan yang sesuai dengan kata kunci pencarian." : "Belum ada pesan yang masuk dari halaman kontak."}
                     </td>
                   </tr>
                 ) : (
-                  messages.map((msg, index) => (
+                  filteredMessages.map((msg, index) => (
                     <tr key={index} className="hover:bg-slate-50/80 transition">
                       <td className="py-4 font-bold text-slate-900">{msg.nama}</td>
                       <td className="py-4 text-slate-600">{msg.email || "-"}</td>
@@ -469,7 +539,7 @@ export default function AdminDashboard() {
 
       </main>
 
-      {/* 🟢 MODAL POP-UP DETAIL INFORMASI BOOKING USER */}
+      {/* 🟢 MODAL POP-UP DETAIL INFORMASI BOOKING USER & KONFIRMASI PEMBAYARAN */}
       {selectedOrder && (
         <div 
           onClick={() => setSelectedOrder(null)}
@@ -477,12 +547,12 @@ export default function AdminDashboard() {
         >
           <div 
             onClick={(e) => e.stopPropagation()} 
-            className="bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 space-y-6 shadow-2xl border border-slate-100 relative my-8 animate-in fade-in zoom-in-95 duration-200"
+            className="bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 space-y-5 shadow-2xl border border-slate-100 relative my-8 animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto"
           >
             <div className="flex justify-between items-center pb-4 border-b border-slate-100">
               <div>
                 <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest bg-emerald-50 px-2.5 py-1 rounded-md">
-                  Informasi Detail Booking
+                  Informasi Detail Booking & Transaksi
                 </span>
                 <h3 className="text-lg font-black text-slate-900 uppercase mt-1">
                   Order #{selectedOrder.id}
@@ -504,7 +574,7 @@ export default function AdminDashboard() {
                 <div className="grid grid-cols-2 gap-2 text-slate-600">
                   <div>
                     <span className="text-slate-400 block text-[10px]">Nama Lengkap</span>
-                    <strong className="text-slate-800">{selectedOrder.billing?.first_name || "-"}</strong>
+                    <strong className="text-slate-800">{selectedOrder.billing?.first_name || "-"} {selectedOrder.billing?.last_name || ""}</strong>
                   </div>
                   <div>
                     <span className="text-slate-400 block text-[10px]">No. Telepon / WhatsApp</span>
@@ -523,15 +593,24 @@ export default function AdminDashboard() {
                 </h4>
                 <div className="space-y-2 text-slate-600">
                   <div>
-                    <span className="text-slate-400 block text-[10px]">Jenis Pesanan / Kategori</span>
-                    <strong className="text-slate-800">{selectedOrder.jenis_pesanan || "Paket Wisata / UMKM"}</strong>
-                  </div>
-                  <div>
                     <span className="text-slate-400 block text-[10px]">Item Produk / Unit Dipesan</span>
                     <strong className="text-slate-800">{selectedOrder.line_items_name || "-"}</strong>
                   </div>
+
+                  {/* 📅 TANGGAL RESERVASI AWAL & AKHIR */}
+                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200/60">
+                    <div>
+                      <span className="text-slate-400 block text-[10px]">Tanggal Reservasi Awal</span>
+                      <strong className="text-emerald-700">{selectedOrder.tanggal_mulai || selectedOrder.tanggal_reservasi || "-"}</strong>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block text-[10px]">Tanggal Reservasi Akhir</span>
+                      <strong className="text-emerald-700">{selectedOrder.tanggal_selesai || "-"}</strong>
+                    </div>
+                  </div>
+
                   <div>
-                    <span className="text-slate-400 block text-[10px]">Waktu Pembuatan Order</span>
+                    <span className="text-slate-400 block text-[10px] mt-1">Waktu Pembuatan Order</span>
                     <strong className="text-slate-800">{selectedOrder.date || "-"}</strong>
                   </div>
                 </div>
@@ -544,21 +623,32 @@ export default function AdminDashboard() {
                 </div>
                 <div>
                   {selectedOrder.status === "completed" || selectedOrder.status === "processing" ? (
-                    <span className="px-3 py-1.5 bg-emerald-600 text-white rounded-xl font-bold text-[11px] uppercase tracking-wider shadow-sm">
-                      Lunas (Paid)
+                    <span className="px-3 py-1.5 bg-emerald-600 text-white rounded-xl font-bold text-[11px] uppercase tracking-wider shadow-sm inline-flex items-center gap-1">
+                      <CheckCircle size={12} /> Lunas (Paid)
                     </span>
                   ) : (
-                    <span className="px-3 py-1.5 bg-amber-500 text-white rounded-xl font-bold text-[11px] uppercase tracking-wider shadow-sm">
-                      Pending
+                    <span className="px-3 py-1.5 bg-amber-500 text-white rounded-xl font-bold text-[11px] uppercase tracking-wider shadow-sm inline-flex items-center gap-1">
+                      <Clock size={12} /> Pending
                     </span>
                   )}
                 </div>
               </div>
+
+              {/* 🔘 TOMBOL KONFIRMASI PEMBAYARAN JIKA MASIH PENDING (TANPA CONFIRM/ALERT BAWAAN) */}
+              {selectedOrder.status === "pending" && (
+                <button 
+                  onClick={() => handleMarkAsPaid(selectedOrder.id)}
+                  disabled={updatingStatus}
+                  className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-bold uppercase tracking-wider transition shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  <CheckCheck size={16} /> Konfirmasi Pembayaran (Ubah Jadi Paid)
+                </button>
+              )}
             </div>
 
             <button 
               onClick={() => setSelectedOrder(null)}
-              className="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl text-xs font-bold uppercase tracking-wider transition"
+              className="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl text-xs font-bold uppercase tracking-wider transition cursor-pointer"
             >
               Tutup Jendela
             </button>

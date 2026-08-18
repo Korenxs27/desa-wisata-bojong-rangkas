@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import toast, { Toaster } from "react-hot-toast";
 import { ArrowLeft, Save, Loader2, Plus, Trash2, Landmark } from "lucide-react";
 
 export default function AdminProfilPage() {
@@ -34,6 +35,7 @@ export default function AdminProfilPage() {
         }
       } catch (err) {
         console.error("Gagal memuat profil admin:", err);
+        toast.error("Gagal memuat profil desa.");
       } finally {
         setLoading(false);
       }
@@ -44,6 +46,7 @@ export default function AdminProfilPage() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
+    const loadingToast = toast.loading("Menyimpan profil desa...");
 
     const formData = new FormData();
     formData.append("sejarah", sejarah ?? "");
@@ -62,9 +65,10 @@ export default function AdminProfilPage() {
         body: formData,
       });
       const data = await res.json();
+      toast.dismiss(loadingToast);
       
       if (data.success) {
-        alert("Profil desa berhasil disimpan");
+        toast.success("Profil desa berhasil disimpan!");
         if (data.profil) {
           setSejarah(data.profil.sejarah ?? "");
           setVisi(data.profil.visi ?? "");
@@ -75,11 +79,12 @@ export default function AdminProfilPage() {
         }
         setImageFile(null);
       } else {
-        alert("Gagal menyimpan profil.");
+        toast.error("Gagal menyimpan profil.");
       }
     } catch (err) {
       console.error(err);
-      alert("Terjadi kesalahan jaringan.");
+      toast.dismiss(loadingToast);
+      toast.error("Terjadi kesalahan jaringan.");
     } finally {
       setSaving(false);
     }
@@ -100,7 +105,10 @@ export default function AdminProfilPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-8 text-slate-800 font-sans">
+    <div className="min-h-screen bg-slate-100 p-4 sm:p-6 lg:p-8 text-slate-800 font-sans">
+      {/* 🟢 TOASTER MANDIRI KHUSUS HALAMAN PROFIL */}
+      <Toaster position="top-right" reverseOrder={false} />
+
       <div className="max-w-4xl mx-auto space-y-8">
         
         <div className="flex items-center justify-between bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
