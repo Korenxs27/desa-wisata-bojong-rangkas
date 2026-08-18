@@ -77,7 +77,7 @@ export default function Footer() {
 
         {/* Kolom 4: Sekretariat (3/12) */}
         <div className="md:col-span-3 space-y-3">
-          <h4 className="text-[10px] font-bold uppercase tracking-widest text-white">Sekretariat</h4>
+          <h4 className="text-[10px] font-bold uppercase tracking-widest text-white">Informasi</h4>
           <ul className="space-y-2.5 text-[11px] font-light text-neutral-500">
             <li className="flex gap-2 items-start">
               <MapPin size={14} className="text-emerald-500 shrink-0 mt-0.5" />
@@ -85,11 +85,11 @@ export default function Footer() {
             </li>
             <li className="flex gap-2 items-center">
               <Phone size={14} className="text-emerald-500 shrink-0" />
-              <span>+62 812-3456-7890</span>
+              <span>+62 8123456789</span>
             </li>
             <li className="flex gap-2 items-center">
               <Mail size={14} className="text-emerald-500 shrink-0" />
-              <span>info@bojongrangkas.desa.id</span>
+              <span>desawisatabojongrangkas@gmail.com</span>
             </li>
           </ul>
         </div>
@@ -98,10 +98,7 @@ export default function Footer() {
 
       {/* Baris Hak Cipta Bawah */}
       <div className="max-w-7xl mx-auto px-6 mt-12 pt-6 border-t border-white/[0.03] flex flex-col sm:flex-row items-center justify-between gap-4 text-[10px] text-neutral-600 font-light">
-        <p>© {new Date().getFullYear()} Pemerintahan Desa Bojong Rangkas. Hak Cipta Dilindungi.</p>
-        <p className="flex items-center gap-1">
-          Crafted with <Heart size={10} className="text-rose-500 fill-rose-500 animate-pulse" /> for Digital Transformation.
-        </p>
+        <p>© {new Date().getFullYear()}Desa Wisata Bojong Rangkas. Hak Cipta Dilindungi.</p>
       </div>
     </footer>
   );
