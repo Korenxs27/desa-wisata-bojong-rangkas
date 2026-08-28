@@ -33,7 +33,7 @@ export default function AdminBerandaPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  const apiEndpoint = "https://desa-wisata-bojongrangkas.biznityhub.com/wp-json/wc-bridge/v1/profil-desa";
+  const apiEndpoint = "https://desa-wisata-bojongrangkas.com/wp-json/wc-bridge/v1/profil-desa";
 
   useEffect(() => {
     const fetchBerandaAdmin = async () => {
@@ -142,7 +142,7 @@ export default function AdminBerandaPage() {
 
   return (
     <div className="min-h-screen bg-slate-100 p-4 sm:p-6 lg:p-8 text-slate-800 font-sans">
-      {/* 🟢 TOASTER MANDIRI KHUSUS HALAMAN BERANDA */}
+      {/* TOASTER MANDIRI KHUSUS HALAMAN BERANDA */}
       <Toaster position="top-right" reverseOrder={false} />
 
       <div className="max-w-4xl mx-auto space-y-8">
@@ -170,19 +170,19 @@ export default function AdminBerandaPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-[11px] font-bold text-slate-400 uppercase mb-1">Judul Baris 1</label>
-                <input 
-                  type="text"
-                  value={hero.title_line_1}
-                  onChange={(e) => setHero({...hero, title_line_1: e.target.value})}
+                <input
+  type="text"
+  value={hero.title_line_1 ?? ""}
+  onChange={(e) => setHero({...hero, title_line_1: e.target.value})}
                   className="w-full bg-slate-50 border border-slate-200 p-3 rounded-2xl text-xs font-semibold"
                 />
               </div>
               <div>
                 <label className="block text-[11px] font-bold text-slate-400 uppercase mb-1">Judul Baris 2 (Warna Hijau)</label>
-                <input 
-                  type="text"
-                  value={hero.title_line_2}
-                  onChange={(e) => setHero({...hero, title_line_2: e.target.value})}
+                <input
+  type="text"
+  value={hero.title_line_2 ?? ""}
+  onChange={(e) => setHero({...hero, title_line_2: e.target.value})}
                   className="w-full bg-slate-50 border border-slate-200 p-3 rounded-2xl text-xs font-semibold"
                 />
               </div>

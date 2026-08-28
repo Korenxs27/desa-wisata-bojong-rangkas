@@ -6,7 +6,7 @@ export default function LogoutButton() {
   const router = useRouter();
 
   const handleLogout = () => {
-    // 🛡️ Hapus HANYA data milik user, biarkan admin_token tetap aman
+    // Hapus HANYA data milik user, biarkan admin_token tetap aman
     localStorage.removeItem("user_token");
     localStorage.removeItem("user_name");
     localStorage.removeItem("user_role");

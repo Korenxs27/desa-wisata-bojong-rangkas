@@ -18,7 +18,7 @@ export default function AdminProfilPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  const apiEndpoint = "https://desa-wisata-bojongrangkas.biznityhub.com/wp-json/wc-bridge/v1/profil-desa";
+  const apiEndpoint = "https://desa-wisata-bojongrangkas.com/wp-json/wc-bridge/v1/profil-desa";
 
   useEffect(() => {
     const fetchProfil = async () => {

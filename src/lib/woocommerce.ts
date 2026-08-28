@@ -2,13 +2,13 @@
 import WooCommerceRestApi from "@woocommerce/woocommerce-rest-api";
 
 export const api = new WooCommerceRestApi({
-  url: "https://desa-wisata-bojongrangkas.biznityhub.com",
+  url: "https://desa-wisata-bojongrangkas.com",
   consumerKey: process.env.WC_CONSUMER_KEY as string,
   consumerSecret: process.env.WC_CONSUMER_SECRET as string,
   version: "wc/v3"
 });
 
-// 🛠️ HELPER FUNCTIONS FOR ADMIN CRUD
+// HELPER FUNCTIONS FOR ADMIN CRUD
 export async function getProducts() {
   try {
     const response = await api.get("products", { per_page: 20 });

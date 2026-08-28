@@ -14,7 +14,7 @@ export default function Navbar() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // 🔄 STATE STATUS LOGIN & AVATAR
+  // STATE STATUS LOGIN & AVATAR
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userRole, setUserRole] = useState("");
   const [userName, setUserName] = useState("");
@@ -31,7 +31,7 @@ export default function Navbar() {
     };
     window.addEventListener("scroll", handleScroll);
 
-    // 🔍 PENGECEKAN SESSION & AVATAR
+    // PENGECEKAN SESSION & AVATAR
     const adminToken = localStorage.getItem("admin_token");
     const userToken = localStorage.getItem("user_token");
     const role = localStorage.getItem("user_role");
@@ -58,7 +58,7 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [pathname]);
 
-  // 🚪 FUNGSI LOGOUT AMAN
+  // FUNGSI LOGOUT AMAN
   const handleLogout = () => {
     localStorage.removeItem("user_token");
     localStorage.removeItem("user_role");
@@ -118,7 +118,7 @@ export default function Navbar() {
             </div>
           </Link>
 
-          {/* CENTER: DESKTOP NAV MENU (Updated Font Style) */}
+          {/* CENTER: DESKTOP NAV MENU */}
           <nav className="hidden lg:flex items-center gap-1.5 lg:gap-3">
             {menuItems.map((item) => (
               <Link
@@ -201,9 +201,9 @@ export default function Navbar() {
         </div>
       </header>
 
-      {/* MOBILE NAVIGATION DRAWER */}
+      {/* MOBILE NAVIGATION DRAWER (DIPERBARUI MENJADI SATU KOLOM KE BAWAH) */}
       {isMobileMenuOpen && (
-        <div className="lg:hidden fixed inset-x-4 top-24 bg-white/95 backdrop-blur-2xl border border-slate-200 rounded-3xl p-6 shadow-2xl space-y-5 z-[998] animate-in fade-in zoom-in-95 duration-200">
+        <div className="lg:hidden fixed inset-x-4 top-24 bg-white/95 backdrop-blur-2xl border border-slate-200 rounded-3xl p-6 shadow-2xl space-y-4 z-[998] animate-in fade-in zoom-in-95 duration-200">
           
           {/* Status Akun di Mobile Menu */}
           {isLoggedIn ? (
@@ -243,16 +243,17 @@ export default function Navbar() {
             </Link>
           )}
 
-          {/* Daftar Menu Navigasi Mobile (Updated Font Style) */}
-          <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
+          {/* Daftar Menu Navigasi Mobile (1 Kolom ke Bawah secara Berurutan) */}
+          <div className="flex flex-col space-y-1 pt-2 border-t border-slate-100">
             {menuItems.map((item) => (
               <Link
                 key={item.name}
                 href={item.href}
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="text-xs font-serif font-normal text-slate-700 hover:text-emerald-600 hover:bg-slate-50 p-3 rounded-xl transition"
+                className="py-3 px-3 rounded-xl text-xs font-serif font-normal text-slate-700 hover:text-emerald-600 hover:bg-emerald-50/50 transition flex items-center justify-between border-b border-slate-100/60 last:border-none"
               >
-                {item.name}
+                <span>{item.name}</span>
+                <span className="text-slate-400 text-[10px]">&rarr;</span>
               </Link>
             ))}
           </div>

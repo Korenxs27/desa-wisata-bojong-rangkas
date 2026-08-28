@@ -18,8 +18,7 @@ export default function SearchModal({ isOpen, onClose }: { isOpen: boolean; onCl
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // 🗺️ DATA HALAMAN STATIS: Untuk memetakan pencarian navigasi internal utama
- // 🗺️ DATA HALAMAN STATIS: Jalur pintas navigasi internal desa
+  // 🗺️ DATA HALAMAN STATIS: Jalur pintas navigasi internal desa
   const staticPages = [
     { id: "p-profil", title: "Profil Desa Bojong Rangkas", slug: "/profil", keywords: ["profil", "desa", "sejarah", "tentang", "about"], image: "/images/bg.png" },
     { id: "p-gallery", title: "Gallery Foto & Dokumentasi", slug: "/gallery", keywords: ["gallery", "galeri", "foto", "dokumentasi", "kegiatan", "gambar"], image: "/images/bg.png" }, 
@@ -31,7 +30,7 @@ export default function SearchModal({ isOpen, onClose }: { isOpen: boolean; onCl
   ];
 
   useEffect(() => {
-    if (query.trim().length < 2) { // Gua turunin ke 2 karakter biar pencarian kata pendek kayak 'kb' atau 'tas' langsung responsif cukk
+    if (query.trim().length < 2) {
       setResults([]);
       return;
     }
@@ -41,7 +40,7 @@ export default function SearchModal({ isOpen, onClose }: { isOpen: boolean; onCl
       try {
         const lowerQuery = query.toLowerCase().trim();
 
-        // 1. Filter halaman statis lokal dulu secara instan
+        // 1. Filter halaman statis lokal secara instan
         const matchedStatic = staticPages
           .filter(page => 
             page.title.toLowerCase().includes(lowerQuery) || 
@@ -55,21 +54,22 @@ export default function SearchModal({ isOpen, onClose }: { isOpen: boolean; onCl
             image: page.image
           }));
 
-        // 2. Ambil data paralel dari CPT WordPress & WooCommerce API
-        const [resWisata, resHomestay, resUmkm] = await Promise.all([
-          fetch(`https://desa-wisata-bojongrangkas.biznityhub.com/wp-json/wp/v2/wisata?search=${query}&_embed&per_page=3`).then(r => r.json()).catch(() => []),
-          fetch(`https://desa-wisata-bojongrangkas.biznityhub.com/wp-json/wp/v2/homestay?search=${query}&_embed&per_page=3`).then(r => r.json()).catch(() => []),
-          fetch(`/api/search?q=${query}`).then(r => r.json()).catch(() => [])
+        // 2. Ambil data paralel dari CPT WordPress & WooCommerce API (Wisata, Homestay, Paket Wisata, UMKM)
+        const [resWisata, resHomestay, resPaket, resUmkm] = await Promise.all([
+          fetch(`https://desa-wisata-bojongrangkas.com/wp-json/wp/v2/wisata?search=${encodeURIComponent(query)}&_embed&per_page=3`).then(r => r.json()).catch(() => []),
+          fetch(`https://desa-wisata-bojongrangkas.com/wp-json/wp/v2/homestay?search=${encodeURIComponent(query)}&_embed&per_page=3`).then(r => r.json()).catch(() => []),
+          fetch(`https://desa-wisata-bojongrangkas.com/wp-json/wp/v2/paket_wisata?search=${encodeURIComponent(query)}&_embed&per_page=3`).then(r => r.json()).catch(() => []),
+          fetch(`/api/search?q=${encodeURIComponent(query)}`).then(r => r.json()).catch(() => [])
         ]);
 
         const formattedResults: SearchResult[] = [...matchedStatic];
 
-        // Parsing Wisata
+        // Parsing Objek Wisata
         if (Array.isArray(resWisata)) {
           resWisata.forEach((item: any) => {
             formattedResults.push({
               id: item.id,
-              title: item.title?.rendered,
+              title: item.title?.rendered || "Destinasi Wisata",
               slug: `/wisata/${item.slug}`,
               type: "wisata",
               image: item._embedded?.["wp:featuredmedia"]?.[0]?.source_url || null
@@ -82,9 +82,22 @@ export default function SearchModal({ isOpen, onClose }: { isOpen: boolean; onCl
           resHomestay.forEach((item: any) => {
             formattedResults.push({
               id: item.id,
-              title: item.title?.rendered,
+              title: item.title?.rendered || "Homestay Warga",
               slug: `/homestay/${item.slug}`,
               type: "homestay",
+              image: item._embedded?.["wp:featuredmedia"]?.[0]?.source_url || null
+            });
+          });
+        }
+
+        // Parsing Paket Wisata
+        if (Array.isArray(resPaket)) {
+          resPaket.forEach((item: any) => {
+            formattedResults.push({
+              id: item.id,
+              title: item.title?.rendered || "Paket Wisata",
+              slug: `/paket/${item.slug}`,
+              type: "paket",
               image: item._embedded?.["wp:featuredmedia"]?.[0]?.source_url || null
             });
           });
@@ -95,7 +108,7 @@ export default function SearchModal({ isOpen, onClose }: { isOpen: boolean; onCl
           resUmkm.forEach((item: any) => {
             formattedResults.push({
               id: item.id,
-              title: item.name,
+              title: item.name || item.title?.rendered || "Produk UMKM",
               slug: `/umkm/${item.slug}`,
               type: "umkm",
               image: item.images?.[0]?.src || null
@@ -109,12 +122,29 @@ export default function SearchModal({ isOpen, onClose }: { isOpen: boolean; onCl
       } finally {
         setLoading(false);
       }
-    }, 400); // 400ms biar kerasa lebih instan dan gesit pas ngetik cukk
+    }, 400);
 
     return () => clearTimeout(delayDebounce);
   }, [query]);
 
   if (!isOpen) return null;
+
+  const getTypeBadgeClass = (type: SearchResult["type"]) => {
+    switch (type) {
+      case "halaman":
+        return "bg-indigo-600";
+      case "wisata":
+        return "bg-emerald-600";
+      case "homestay":
+        return "bg-amber-600";
+      case "paket":
+        return "bg-teal-600";
+      case "umkm":
+        return "bg-purple-600";
+      default:
+        return "bg-neutral-900";
+    }
+  };
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[9999] flex items-start justify-center pt-[10vh] px-4">
@@ -125,13 +155,16 @@ export default function SearchModal({ isOpen, onClose }: { isOpen: boolean; onCl
           <Search className="text-neutral-400 shrink-0" size={20} />
           <input
             type="text"
-            placeholder="Cari wisata, produk, gallery, profil, atau kontak..."
+            placeholder="Cari wisata, homestay, paket, UMKM, gallery, profil..."
             className="w-full bg-transparent text-sm text-neutral-800 outline-none placeholder:text-neutral-400 font-light"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             autoFocus
           />
-          <button onClick={onClose} className="p-1 rounded-xl bg-neutral-100 text-neutral-500 hover:bg-neutral-200 transition">
+          <button 
+            onClick={onClose} 
+            className="p-1.5 rounded-xl bg-neutral-100 text-neutral-500 hover:bg-neutral-200 transition cursor-pointer"
+          >
             <X size={16} />
           </button>
         </div>
@@ -140,30 +173,37 @@ export default function SearchModal({ isOpen, onClose }: { isOpen: boolean; onCl
         <div className="max-h-[60vh] overflow-y-auto p-4 space-y-3">
           {loading && (
             <div className="flex items-center justify-center py-8 gap-2 text-xs text-neutral-400 font-light">
-              <Loader2 className="animate-spin text-emerald-600" size={16} /> Mencari data...
+              <Loader2 className="animate-spin text-emerald-600" size={16} /> Mencari data di seluruh sistem...
             </div>
           )}
 
           {!loading && results.length > 0 && (
             <div className="space-y-2">
-              <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block px-2">Hasil Pencarian</span>
+              <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block px-2">
+                Hasil Pencarian ({results.length})
+              </span>
               {results.map((res) => (
                 <Link
                   key={`${res.type}-${res.id}`}
                   href={res.slug}
                   onClick={onClose}
-                  className="flex items-center gap-3 p-2 rounded-2xl hover:bg-emerald-50/50 border border-transparent hover:border-emerald-100/60 transition group"
+                  className="flex items-center gap-3 p-2.5 rounded-2xl hover:bg-emerald-50/50 border border-transparent hover:border-emerald-100/60 transition group"
                 >
                   <div className="relative w-12 h-12 rounded-xl bg-neutral-100 overflow-hidden shrink-0 border border-neutral-200/40">
-                    <Image src={res.image || "/placeholder-wisata.jpg"} alt={res.title} fill className="object-cover" />
+                    <Image 
+                      src={res.image || "/placeholder-wisata.jpg"} 
+                      alt={res.title} 
+                      fill 
+                      className="object-cover" 
+                    />
                   </div>
                   <div className="flex-grow min-w-0">
-                    <span className={`text-[8px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-md inline-block mb-1 text-white ${
-                      res.type === 'halaman' ? 'bg-indigo-600' : 'bg-neutral-900'
-                    }`}>
+                    <span className={`text-[8px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-md inline-block mb-1 text-white ${getTypeBadgeClass(res.type)}`}>
                       {res.type}
                     </span>
-                    <h4 className="text-xs font-semibold text-neutral-800 truncate group-hover:text-emerald-600 transition">{res.title}</h4>
+                    <h4 className="text-xs font-semibold text-neutral-800 truncate group-hover:text-emerald-600 transition">
+                      {res.title}
+                    </h4>
                   </div>
                   <ArrowRight size={14} className="text-neutral-300 group-hover:text-emerald-600 group-hover:translate-x-1 transition shrink-0" />
                 </Link>
@@ -172,13 +212,18 @@ export default function SearchModal({ isOpen, onClose }: { isOpen: boolean; onCl
           )}
 
           {!loading && query.length >= 2 && results.length === 0 && (
-            <p className="text-center py-8 text-xs text-neutral-400 font-light italic">Data tidak ditemukan cukk.</p>
+            <p className="text-center py-8 text-xs text-neutral-400 font-light italic">
+              Data tidak ditemukan. Coba kata kunci lain.
+            </p>
           )}
 
           {query.length < 2 && (
-            <p className="text-center py-6 text-xs text-neutral-400 font-light">Ketik minimal 2 karakter untuk mulai mencari.</p>
+            <p className="text-center py-6 text-xs text-neutral-400 font-light">
+              Ketik minimal 2 karakter untuk mulai mencari.
+            </p>
           )}
         </div>
+
       </div>
     </div>
   );

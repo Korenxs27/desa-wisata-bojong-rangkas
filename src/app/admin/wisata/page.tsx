@@ -28,7 +28,7 @@ export default function AdminWisataPage() {
   const fetchWisataData = async () => {
     setLoading(true);
     try {
-      const res = await fetch("https://desa-wisata-bojongrangkas.biznityhub.com/wp-json/wp/v2/wisata?_embed", { cache: "no-store" });
+      const res = await fetch("https://desa-wisata-bojongrangkas.com/wp-json/wp/v2/wisata?_embed", { cache: "no-store" });
       const data = await res.json();
       if (Array.isArray(data)) setWisataList(data);
     } catch (err) {
@@ -101,7 +101,7 @@ export default function AdminWisataPage() {
         formData.append("image_file", imageFile);
       }
 
-      const res = await fetch("https://desa-wisata-bojongrangkas.biznityhub.com/wp-json/wc-bridge/v1/upsert-item", {
+      const res = await fetch("https://desa-wisata-bojongrangkas.com/wp-json/wc-bridge/v1/upsert-item", {
         method: "POST",
         body: formData,
       });
@@ -139,7 +139,7 @@ export default function AdminWisataPage() {
             
             const loadingToast = toast.loading("Menghapus objek wisata...");
             try {
-              const res = await fetch("https://desa-wisata-bojongrangkas.biznityhub.com/wp-json/wc-bridge/v1/delete-item", {
+              const res = await fetch("https://desa-wisata-bojongrangkas.com/wp-json/wc-bridge/v1/delete-item", {
                 method: "DELETE",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ id: id }),

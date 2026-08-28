@@ -75,7 +75,7 @@ export default async function UMKMDetailPage({ params }: { params: Promise<{ slu
         
         <div className="lg:col-span-2 space-y-6">
           
-          {/* 🚀 TOMBOL KEMBALI PINTAR NATIVE */}
+          {/* TOMBOL KEMBALI PINTAR NATIVE */}
           <div className="flex justify-start">
             <BackButton text="Kembali" />
           </div>
@@ -173,8 +173,10 @@ export default async function UMKMDetailPage({ params }: { params: Promise<{ slu
               </div>
             )}
 
+            {/* PROP productName DIKIRIM SECARA DINAMIS DISINI */}
             <ClientOrderForm 
               productId={product.id} 
+              productName={product.name} 
               productPrice={parseInt(product.price || "0")} 
               stockStatus={product.stock_status}
             />

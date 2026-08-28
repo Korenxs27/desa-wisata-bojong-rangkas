@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import toast from "react-hot-toast";
-import { ArrowLeft, Upload, Trash2, Loader2, Image as ImageIcon } from "lucide-react";
+import toast, { Toaster } from "react-hot-toast";
+import { ArrowLeft, Upload, Trash2, Loader2, Image as ImageIcon, Play, Film } from "lucide-react";
 
 export default function AdminGalleryPage() {
   const [gallery, setGallery] = useState<any[]>([]);
@@ -14,7 +14,7 @@ export default function AdminGalleryPage() {
   const [category, setCategory] = useState("");
   const [file, setFile] = useState<File | null>(null);
 
-  const apiEndpoint = "https://desa-wisata-bojongrangkas.biznityhub.com/wp-json/wc-bridge/v1/gallery-items";
+  const apiEndpoint = "https://desa-wisata-bojongrangkas.com/wp-json/wc-bridge/v1/gallery-items";
 
   const fetchGallery = async () => {
     try {
@@ -38,16 +38,16 @@ export default function AdminGalleryPage() {
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file) {
-      toast.error("Pilih foto terlebih dahulu dari device kamu!");
+      toast.error("Pilih file foto atau video terlebih dahulu dari device kamu!");
       return;
     }
 
     setUploading(true);
-    const loadingToast = toast.loading("Mengunggah foto ke server...");
+    const loadingToast = toast.loading("Mengunggah media ke server...");
     const formData = new FormData();
     formData.append("title", title || "Dokumentasi Desa");
     formData.append("category", category || "Umum");
-    formData.append("image_file", file);
+    formData.append("image_file", file); // Backend PHP memproses 'image_file' untuk foto maupun video
 
     try {
       const res = await fetch(apiEndpoint, {
@@ -58,13 +58,13 @@ export default function AdminGalleryPage() {
       toast.dismiss(loadingToast);
 
       if (data.success) {
-        toast.success("Foto berhasil diunggah!");
+        toast.success("Media berhasil diunggah!");
         setTitle("");
         setCategory("");
         setFile(null);
         fetchGallery();
       } else {
-        toast.error("Gagal mengunggah foto.");
+        toast.error("Gagal mengunggah media.");
       }
     } catch (err) {
       console.error(err);
@@ -76,9 +76,9 @@ export default function AdminGalleryPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Yakin ingin menghapus foto ini dari server?")) return;
+    if (!confirm("Yakin ingin menghapus media ini dari server?")) return;
 
-    const loadingToast = toast.loading("Menghapus foto...");
+    const loadingToast = toast.loading("Menghapus media...");
     try {
       const res = await fetch(`${apiEndpoint}?id=${id}`, {
         method: "DELETE",
@@ -87,10 +87,10 @@ export default function AdminGalleryPage() {
       toast.dismiss(loadingToast);
 
       if (data.success) {
-        toast.success("Foto berhasil dihapus!");
+        toast.success("Media berhasil dihapus!");
         setGallery((prev) => prev.filter((item) => item.id !== id));
       } else {
-        toast.error("Gagal menghapus foto dari server.");
+        toast.error("Gagal menghapus media dari server.");
       }
     } catch (err) {
       console.error(err);
@@ -101,6 +101,9 @@ export default function AdminGalleryPage() {
 
   return (
     <div className="min-h-screen bg-slate-100 p-4 sm:p-6 lg:p-8 text-slate-800 font-sans">
+      {/* 🟢 TOASTER MANDIRI KHUSUS HALAMAN GALERI */}
+      <Toaster position="top-right" reverseOrder={false} />
+
       <div className="max-w-5xl mx-auto space-y-8">
         
         <div className="flex items-center justify-between bg-white p-6 rounded-3xl border border-slate-200/85 shadow-sm">
@@ -109,25 +112,25 @@ export default function AdminGalleryPage() {
               <ArrowLeft size={18} />
             </Link>
             <div>
-              <h1 className="text-lg font-black uppercase text-slate-900">Manajemen Galeri & Foto Publik</h1>
-              <p className="text-xs text-slate-500 font-light">Upload foto dengan kategori bebas ciptaanmu sendiri.</p>
+              <h1 className="text-lg font-black uppercase text-slate-900">Manajemen Galeri Foto & Video Desa</h1>
+              <p className="text-xs text-slate-500 font-light">Upload dokumentasi foto atau file video (MP4/WebM) dengan kategori bebas.</p>
             </div>
           </div>
         </div>
 
         <form onSubmit={handleUpload} className="bg-white p-6 rounded-3xl border border-slate-200/85 shadow-sm space-y-4">
           <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-            <Upload size={16} className="text-emerald-600" /> Upload Foto Baru dari Device
+            <Upload size={16} className="text-emerald-600" /> Upload Foto / Video Baru dari Device
           </h2>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-[11px] font-bold text-slate-400 uppercase mb-1">Judul / Keterangan Foto</label>
+              <label className="block text-[11px] font-bold text-slate-400 uppercase mb-1">Judul / Keterangan Media</label>
               <input 
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Contoh: Spot Foto Jembatan Kayu"
+                placeholder="Contoh: Profil Desa / Spot Jembatan"
                 className="w-full bg-slate-50 border border-slate-200 p-3 rounded-2xl text-xs font-semibold focus:outline-none focus:border-emerald-500"
               />
             </div>
@@ -138,16 +141,16 @@ export default function AdminGalleryPage() {
                 type="text"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                placeholder="Contoh: Event Desa, Alam, Kuliner"
+                placeholder="Contoh: Event Desa, Alam, Video Profil"
                 className="w-full bg-slate-50 border border-slate-200 p-3 rounded-2xl text-xs font-semibold focus:outline-none focus:border-emerald-500"
               />
             </div>
 
             <div>
-              <label className="block text-[11px] font-bold text-slate-400 uppercase mb-1">Pilih File Foto (JPG/PNG)</label>
+              <label className="block text-[11px] font-bold text-slate-400 uppercase mb-1">Pilih File (Foto / Video MP4)</label>
               <input 
                 type="file"
-                accept="image/*"
+                accept="image/*,video/mp4,video/webm,video/ogg,video/quicktime"
                 onChange={(e) => setFile(e.target.files?.[0] || null)}
                 className="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-2xl text-xs file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-[11px] file:font-bold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer"
               />
@@ -159,13 +162,13 @@ export default function AdminGalleryPage() {
             disabled={uploading}
             className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-bold uppercase tracking-wider shadow-lg shadow-emerald-600/20 transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
           >
-            {uploading ? <><Loader2 size={16} className="animate-spin" /> Mengunggah ke Server...</> : <><Upload size={16} /> Unggah Foto ke Database</>}
+            {uploading ? <><Loader2 size={16} className="animate-spin" /> Mengunggah ke Server...</> : <><Upload size={16} /> Unggah Media ke Database</>}
           </button>
         </form>
 
         <div className="bg-white p-6 rounded-3xl border border-slate-200/85 shadow-sm space-y-6">
           <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-            <ImageIcon size={16} className="text-emerald-600" /> Daftar Foto Galeri Tersimpan
+            <ImageIcon size={16} className="text-emerald-600" /> Daftar Media Galeri Tersimpan
           </h2>
 
           {loading ? (
@@ -174,32 +177,47 @@ export default function AdminGalleryPage() {
             </div>
           ) : gallery.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
-              {gallery.map((item) => (
-                <div key={item.id} className="bg-slate-50 border border-slate-200/80 rounded-2xl overflow-hidden flex flex-col justify-between group">
-                  <div className="relative aspect-[4/3] w-full bg-slate-200 overflow-hidden">
-                    <Image src={item.image} alt={item.title} fill className="object-cover group-hover:scale-105 transition duration-500" />
-                    <span className="absolute top-3 left-3 bg-black/60 backdrop-blur-md text-white text-[9px] font-bold px-2.5 py-1 rounded-lg uppercase tracking-wider">
-                      {item.category}
-                    </span>
-                  </div>
-                  <div className="p-4 flex items-center justify-between gap-2 bg-white">
-                    <div className="truncate space-y-0.5">
-                      <h4 className="text-xs font-bold text-slate-800 uppercase truncate">{item.title}</h4>
-                      <p className="text-[10px] text-slate-400">🕒 {item.date}</p>
+              {gallery.map((item) => {
+                const isVideo = item.type === "video" || (item.media_type && item.media_type.includes("video")) || (item.image && item.image.match(/\.(mp4|webm|ogg|mov)$/i));
+                return (
+                  <div key={item.id} className="bg-slate-50 border border-slate-200/80 rounded-2xl overflow-hidden flex flex-col justify-between group">
+                    <div className="relative aspect-[4/3] w-full bg-slate-900 overflow-hidden">
+                      {isVideo ? (
+                        <>
+                          <video src={item.image} className="w-full h-full object-cover opacity-80" muted />
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="w-10 h-10 bg-emerald-600/90 backdrop-blur-md rounded-full flex items-center justify-center text-white shadow-lg">
+                              <Play size={18} fill="white" className="ml-0.5" />
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <Image src={item.image} alt={item.title} fill className="object-cover group-hover:scale-105 transition duration-500" />
+                      )}
+                      
+                      <span className="absolute top-3 left-3 bg-black/60 backdrop-blur-md text-white text-[9px] font-bold px-2.5 py-1 rounded-lg uppercase tracking-wider flex items-center gap-1">
+                        {isVideo ? <Film size={10} /> : <ImageIcon size={10} />} {item.category}
+                      </span>
                     </div>
-                    <button 
-                      onClick={() => handleDelete(item.id)}
-                      className="p-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl transition cursor-pointer shrink-0"
-                      title="Hapus Foto"
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                    <div className="p-4 flex items-center justify-between gap-2 bg-white">
+                      <div className="truncate space-y-0.5">
+                        <h4 className="text-xs font-bold text-slate-800 uppercase truncate">{item.title}</h4>
+                        <p className="text-[10px] text-slate-400">🕒 {item.date}</p>
+                      </div>
+                      <button 
+                        onClick={() => handleDelete(item.id)}
+                        className="p-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl transition cursor-pointer shrink-0"
+                        title="Hapus Media"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
-            <p className="text-xs text-slate-400 italic font-light text-center py-12">Belum ada foto galeri yang diunggah.</p>
+            <p className="text-xs text-slate-400 italic font-light text-center py-12">Belum ada media galeri yang diunggah.</p>
           )}
         </div>
 

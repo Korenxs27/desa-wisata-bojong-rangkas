@@ -40,7 +40,7 @@ export interface ObjekWisata {
     rendered: string;
   };
   acf: {
-    kategori_wisata: 'Alam' | 'Budaya' | 'Edukasi' | 'Kuliner';
+    kategori_wisata: 'Alam' | 'Agro' | 'Edukasi' ;
     harga_tiket: number;          // SINKRON SAMA WP
     lokasi_maps: string;          // SINKRON SAMA WP
     status_operasional: 'Buka' | 'Tutup' | 'Renovasi';

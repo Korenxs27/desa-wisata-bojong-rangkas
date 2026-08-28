@@ -7,7 +7,7 @@ export default async function DetailWisataPage({ params }: { params: any }) {
   const resolvedParams = await params;
   const slug = resolvedParams?.slug;
 
-  const res = await fetch(`https://desa-wisata-bojongrangkas.biznityhub.com/wp-json/wp/v2/wisata?slug=${slug}&_embed`, {
+  const res = await fetch(`https://desa-wisata-bojongrangkas.com/wp-json/wp/v2/wisata?slug=${slug}&_embed`, {
     cache: "no-store"
   });
   const data = await res.json();

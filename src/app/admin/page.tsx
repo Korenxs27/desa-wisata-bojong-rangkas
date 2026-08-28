@@ -25,7 +25,9 @@ import {
   X,
   Menu,
   CheckCheck,
-  Search
+  Search,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 
 export default function AdminDashboard() {
@@ -39,8 +41,10 @@ export default function AdminDashboard() {
   // State untuk Modal Detail Booking
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
 
-  // State untuk Filter Kotak Masuk Pesan
+  // State untuk Filter Kotak Masuk Pesan & Toggle Lihat Semua
   const [messageSearch, setMessageSearch] = useState("");
+  const [showAllMessages, setShowAllMessages] = useState(false);
+  const [showAllOrders, setShowAllOrders] = useState(false);
   
   // State Statistik Data dari WordPress, WooCommerce, & Galeri
   const [stats, setStats] = useState({
@@ -55,7 +59,7 @@ export default function AdminDashboard() {
   const [orders, setOrders] = useState<any[]>([]);
   const [messages, setMessages] = useState<any[]>([]);
 
-  const wpUrl = process.env.NEXT_PUBLIC_WORDPRESS_URL || "https://desa-wisata-bojongrangkas.biznityhub.com/wp-json";
+  const wpUrl = process.env.NEXT_PUBLIC_WORDPRESS_URL || "https://desa-wisata-bojongrangkas.com/wp-json";
 
   useEffect(() => {
     const adminToken = localStorage.getItem("admin_token");
@@ -76,15 +80,13 @@ export default function AdminDashboard() {
     setLoading(true);
     setRefreshing(true);
     try {
-      // Mengambil total kategori dan daftar semua user secara langsung dari WordPress REST API
-     // Ganti bagian fetch users di dalam fungsi fetchAllAdminData menjadi ini:
-const [catRes, usersRes] = await Promise.all([
-  fetch(`${wpUrl}/wp/v2/categories?per_page=1`),
-  fetch(`${wpUrl}/wp/v2/users/count`),
-]);
+      const [catRes, usersRes] = await Promise.all([
+        fetch(`${wpUrl}/wp/v2/categories?per_page=1`),
+        fetch(`${wpUrl}/wp/v2/users/count`),
+      ]);
 
-const userCountJson = await usersRes.json();
-const realTotalUsers = typeof userCountJson === 'number' ? userCountJson : 0;
+      const userCountJson = await usersRes.json();
+      const realTotalUsers = typeof userCountJson === 'number' ? userCountJson : 0;
 
       let totalGalleryCount = 0;
       try {
@@ -104,10 +106,17 @@ const realTotalUsers = typeof userCountJson === 'number' ? userCountJson : 0;
       try {
         const orderRes = await fetch(`${wpUrl}/wc-bridge/v1/get-orders`);
         const orderJson = await orderRes.json();
-        if (orderJson.success) {
-          ordersData = orderJson.orders;
-          realRevenue = orderJson.total_revenue;
-          realTotalOrders = orderJson.total_orders;
+        if (orderJson.success && Array.isArray(orderJson.orders)) {
+          // Hanya ambil pesanan yang bukan berstatus trash / cancelled / deleted
+          ordersData = orderJson.orders.filter((ord: any) => 
+            ord.status !== 'trash' && ord.status !== 'cancelled' && ord.status !== 'failed'
+          );
+          realTotalOrders = ordersData.length;
+          
+          // Hitung ulang total pendapatan hanya dari order yang valid (processing/completed)
+          realRevenue = ordersData
+            .filter((o: any) => o.status === 'completed' || o.status === 'processing')
+            .reduce((sum: number, o: any) => sum + Number(o.total || 0), 0);
         }
       } catch (err) {
         console.error("Gagal mengambil orders:", err);
@@ -117,7 +126,7 @@ const realTotalUsers = typeof userCountJson === 'number' ? userCountJson : 0;
       try {
         const msgRes = await fetch(`${wpUrl}/wc-bridge/v1/get-messages`);
         const msgJson = await msgRes.json();
-        if (msgJson.success) {
+        if (msgJson.success && Array.isArray(msgJson.messages)) {
           messagesData = msgJson.messages;
         }
       } catch (err) {
@@ -127,7 +136,7 @@ const realTotalUsers = typeof userCountJson === 'number' ? userCountJson : 0;
       setStats({
         totalGallery: totalGalleryCount,
         categories: parseInt(catRes.headers.get("X-WP-Total") || "0", 10),
-        users: realTotalUsers > 0 ? realTotalUsers : parseInt(usersRes.headers.get("X-WP-Total") || "0", 10), // Total user riil terhitung akurat
+        users: realTotalUsers > 0 ? realTotalUsers : parseInt(usersRes.headers.get("X-WP-Total") || "0", 10),
         totalOrders: realTotalOrders,
         revenue: realRevenue,
       });
@@ -143,7 +152,6 @@ const realTotalUsers = typeof userCountJson === 'number' ? userCountJson : 0;
     }
   };
 
-  // Fungsi Konfirmasi Pembayaran Menjadi Paid (Processing) dengan Toast Modern (Tanpa Alert Bawaan)
   const handleMarkAsPaid = async (orderId: number) => {
     setUpdatingStatus(true);
     const loadingToast = toast.loading("Memperbarui status pembayaran...", {
@@ -153,9 +161,13 @@ const realTotalUsers = typeof userCountJson === 'number' ? userCountJson : 0;
     try {
       const res = await fetch(`${wpUrl}/wc-bridge/v1/update-order-status`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
         body: JSON.stringify({ order_id: orderId, status: "processing" })
       });
+      
       const data = await res.json();
       toast.dismiss(loadingToast);
 
@@ -165,16 +177,16 @@ const realTotalUsers = typeof userCountJson === 'number' ? userCountJson : 0;
           iconTheme: { primary: '#34d399', secondary: '#065f46' }
         });
         setSelectedOrder(null);
-        fetchAllAdminData();
+        fetchAllAdminData(); // Refresh data otomatis
       } else {
-        toast.error(`Gagal memperbarui status: ${data.message || "Kesalahan server"}`, {
+        toast.error(`Gagal: ${data.message || "Kesalahan server WordPress"}`, {
           style: { borderRadius: '16px', fontSize: '12px' }
         });
       }
     } catch (err) {
       console.error("Update Status Error:", err);
       toast.dismiss(loadingToast);
-      toast.error("Terjadi kesalahan jaringan.", {
+      toast.error("Terjadi kesalahan jaringan/koneksi ke server.", {
         style: { borderRadius: '16px', fontSize: '12px' }
       });
     } finally {
@@ -190,7 +202,7 @@ const realTotalUsers = typeof userCountJson === 'number' ? userCountJson : 0;
     router.refresh();
   };
 
-  // Filter Pesan berdasarkan pencarian nama atau isi pesan
+  // Filter & Batasi Pesan (Maksimal 5 jika belum klik "Lihat Semua")
   const filteredMessages = messages.filter((msg) => {
     const query = messageSearch.toLowerCase();
     const nameMatch = msg.nama?.toLowerCase().includes(query);
@@ -199,13 +211,15 @@ const realTotalUsers = typeof userCountJson === 'number' ? userCountJson : 0;
     return nameMatch || emailMatch || contentMatch;
   });
 
+  const displayedMessages = showAllMessages ? filteredMessages : filteredMessages.slice(0, 5);
+  const displayedOrders = showAllOrders ? orders : orders.slice(0, 5);
+
   return (
     <div className={`min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/20 to-slate-100 flex flex-col md:flex-row text-slate-800 font-sans relative ${isMobileSidebarOpen ? 'overflow-hidden h-screen' : ''}`}>
       
-      {/* 🟢 REACT HOT TOAST CONTAINER */}
       <Toaster position="top-right" reverseOrder={false} />
 
-      {/* 🟢 SIDEBAR DESKTOP */}
+      {/* SIDEBAR DESKTOP */}
       <aside className="hidden md:flex w-64 bg-white/85 backdrop-blur-xl border-r border-slate-200/85 flex-col justify-between p-5 fixed h-full z-40 shadow-sm">
         <div>
           <div className="pb-6 mb-6 border-b border-slate-100 flex items-center gap-3">
@@ -262,7 +276,7 @@ const realTotalUsers = typeof userCountJson === 'number' ? userCountJson : 0;
         </div>
       </aside>
 
-      {/* 🟢 SIDEBAR MOBILE DRAWER */}
+      {/* SIDEBAR MOBILE DRAWER */}
       {isMobileSidebarOpen && (
         <div className="md:hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex">
           <div className="w-72 bg-white fixed inset-y-0 left-0 z-50 shadow-2xl p-5 flex flex-col justify-between animate-in slide-in-from-left duration-200 overflow-y-auto">
@@ -329,7 +343,7 @@ const realTotalUsers = typeof userCountJson === 'number' ? userCountJson : 0;
         </div>
       )}
 
-      {/* 🔵 MAIN CONTENT AREA */}
+      {/* MAIN CONTENT AREA */}
       <main className="flex-1 md:ml-64 p-4 sm:p-8 space-y-6 md:space-y-8 w-full">
         
         {/* Top Header Bar */}
@@ -360,7 +374,7 @@ const realTotalUsers = typeof userCountJson === 'number' ? userCountJson : 0;
               <span className="hidden sm:inline">Sinkronisasi</span>
             </button>
             <a 
-              href="https://desa-wisata-bojongrangkas.biznityhub.com/wp-admin" 
+              href="https://desa-wisata-bojongrangkas.com/wp-admin" 
               target="_blank" 
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 sm:gap-2 bg-slate-900 text-white text-xs font-semibold px-3.5 sm:px-4 py-2.5 sm:py-3 rounded-2xl hover:bg-slate-800 shadow-md shadow-slate-900/10 transition"
@@ -372,16 +386,19 @@ const realTotalUsers = typeof userCountJson === 'number' ? userCountJson : 0;
 
         {/* STATS CARDS */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-          <div className="bg-white/80 backdrop-blur-md p-5 sm:p-6 rounded-3xl shadow-sm border border-slate-200/60">
+          <a 
+            href="https://docs.google.com/spreadsheets/d/11229Bnfkn9Cr8hkxnzz_2XUiGKSOtLXevw9Lu2BYtak/edit?usp=sharing" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="bg-white/80 backdrop-blur-md p-5 sm:p-6 rounded-3xl shadow-sm border border-slate-200/60 hover:border-emerald-500 hover:shadow-md transition cursor-pointer block group"
+            title="Klik untuk membuka Jurnal Buku Besar Pendapatan di Google Spreadsheet"
+          >
             <div className="flex justify-between items-center mb-4">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Pendapatan</span>
-              <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl"><CreditCard size={18} /></div>
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider group-hover:text-emerald-600 transition">Total Pendapatan</span>
+              <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl group-hover:bg-emerald-600 group-hover:text-white transition"><CreditCard size={18} /></div>
             </div>
             <div className="text-xl sm:text-2xl font-black text-slate-900">Rp {stats.revenue.toLocaleString("id-ID")}</div>
-            <p className="text-[11px] text-emerald-600 font-semibold mt-1 flex items-center gap-1">
-              <TrendingUp size={12} /> Pendapatan
-            </p>
-          </div>
+          </a>
 
           <div className="bg-white/80 backdrop-blur-md p-5 sm:p-6 rounded-3xl shadow-sm border border-slate-200/60">
             <div className="flex justify-between items-center mb-4">
@@ -411,16 +428,17 @@ const realTotalUsers = typeof userCountJson === 'number' ? userCountJson : 0;
           </div>
         </div>
 
-        {/* 🧾 MONITORING ORDERS REAL-TIME DARI WOOCOMMERCE */}
+        {/* 🧾 MONITORING ORDERS REAL-TIME (DENGAN BATAS 5 & LIHAT SEMUA) */}
         <div className="bg-white/80 backdrop-blur-md p-5 sm:p-6 rounded-3xl shadow-sm border border-slate-200/60">
           <div className="flex justify-between items-center mb-6">
             <div>
               <h2 className="text-sm sm:text-base font-bold text-slate-900">Daftar Pesanan & Status Pembayaran</h2>
-              <p className="text-[11px] sm:text-xs text-slate-500">Klik tombol detail untuk konfirmasi status pembayaran dan melihat tanggal reservasi.</p>
+              <p className="text-[11px] sm:text-xs text-slate-500">Menampilkan daftar transaksi pesanan terbaru dari wisatawan.</p>
             </div>
             <span className="text-[10px] sm:text-xs font-semibold text-emerald-600 bg-emerald-50 px-2.5 sm:px-3 py-1.5 rounded-xl">
-              List Orders
+              Total: {orders.length} Orders
             </span>
+
           </div>
 
           <div className="overflow-x-auto">
@@ -443,7 +461,7 @@ const realTotalUsers = typeof userCountJson === 'number' ? userCountJson : 0;
                     </td>
                   </tr>
                 ) : (
-                  orders.map((order, index) => (
+                  displayedOrders.map((order, index) => (
                     <tr key={index} className="hover:bg-slate-50/80 transition">
                       <td className="py-4 font-bold text-slate-900">#{order.id}</td>
                       <td className="py-4 font-semibold text-slate-700">
@@ -477,20 +495,35 @@ const realTotalUsers = typeof userCountJson === 'number' ? userCountJson : 0;
               </tbody>
             </table>
           </div>
+
+          {/* TOMBOL LIHAT SEMUA / SEMBUNYIKAN UNTUK TABEL ORDERS */}
+          {orders.length > 5 && (
+            <div className="pt-4 text-center border-t border-slate-100 mt-2">
+              <button
+                onClick={() => setShowAllOrders(!showAllOrders)}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-2xl text-xs font-bold transition cursor-pointer"
+              >
+                {showAllOrders ? (
+                  <>Sembunyikan Sebagian <ChevronUp size={14} /></>
+                ) : (
+                  <>Lihat Semua Pesanan ({orders.length - 5} lainnya) <ChevronDown size={14} /></>
+                )}
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* ✉️ KOTAK MASUK PESAN & ASPIRASI (DENGAN FITUR FILTER/PENCARIAN) */}
+        {/* 💬 KOTAK MASUK PESAN & ASPIRASI (DENGAN BATAS 5 & FADE TOGGLE) */}
         <div className="bg-white/80 backdrop-blur-md p-5 sm:p-6 rounded-3xl shadow-sm border border-slate-200/60 space-y-4">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div className="flex items-center gap-3">
               <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-2xl"><MessageSquare size={18} /></div>
               <div>
-                <h2 className="text-sm sm:text-base font-bold text-slate-900">Kotak Masuk Pesan & Aspirasi</h2>
-                <p className="text-[11px] sm:text-xs text-slate-500">Pesan dari halaman kontak.</p>
+                <h2 className="text-sm sm:text-base font-bold text-slate-900">Kotak Pesan</h2>
+                <p className="text-[11px] sm:text-xs text-slate-500">Pesan dan aspirasi masuk dari pengunjung.</p>
               </div>
             </div>
             
-            {/* 🔍 INPUT FILTER PENCARIAN PESAN */}
             <div className="relative w-full sm:w-64">
               <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                 <Search size={14} />
@@ -505,7 +538,7 @@ const realTotalUsers = typeof userCountJson === 'number' ? userCountJson : 0;
             </div>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto relative">
             <table className="w-full text-left border-collapse text-xs whitespace-nowrap sm:whitespace-normal">
               <thead>
                 <tr className="border-b border-slate-200 text-slate-400 uppercase tracking-wider text-[10px]">
@@ -516,14 +549,14 @@ const realTotalUsers = typeof userCountJson === 'number' ? userCountJson : 0;
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredMessages.length === 0 ? (
+                {displayedMessages.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="py-8 text-center text-slate-400 italic">
                       {messageSearch ? "Tidak ada pesan yang sesuai dengan kata kunci pencarian." : "Belum ada pesan yang masuk dari halaman kontak."}
                     </td>
                   </tr>
                 ) : (
-                  filteredMessages.map((msg, index) => (
+                  displayedMessages.map((msg, index) => (
                     <tr key={index} className="hover:bg-slate-50/80 transition">
                       <td className="py-4 font-bold text-slate-900">{msg.nama}</td>
                       <td className="py-4 text-slate-600">{msg.email || "-"}</td>
@@ -535,11 +568,27 @@ const realTotalUsers = typeof userCountJson === 'number' ? userCountJson : 0;
               </tbody>
             </table>
           </div>
+
+          {/* TOMBOL LIHAT SEMUA / SEMBUNYIKAN UNTUK TABEL PESAN */}
+          {filteredMessages.length > 5 && (
+            <div className="pt-4 text-center border-t border-slate-100 mt-2">
+              <button
+                onClick={() => setShowAllMessages(!showAllMessages)}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-2xl text-xs font-bold transition cursor-pointer"
+              >
+                {showAllMessages ? (
+                  <>Sembunyikan Sebagian <ChevronUp size={14} /></>
+                ) : (
+                  <>Lihat Semua Pesan ({filteredMessages.length - 5} lainnya) <ChevronDown size={14} /></>
+                )}
+              </button>
+            </div>
+          )}
         </div>
 
       </main>
 
-      {/* 🟢 MODAL POP-UP DETAIL INFORMASI BOOKING USER & KONFIRMASI PEMBAYARAN */}
+      {/* MODAL POP-UP DETAIL INFORMASI BOOKING USER & KONFIRMASI PEMBAYARAN */}
       {selectedOrder && (
         <div 
           onClick={() => setSelectedOrder(null)}
@@ -573,11 +622,11 @@ const realTotalUsers = typeof userCountJson === 'number' ? userCountJson : 0;
                 </h4>
                 <div className="grid grid-cols-2 gap-2 text-slate-600">
                   <div>
-                    <span className="text-slate-400 block text-[10px]">Nama Lengkap</span>
+                    <span className="text-slate-400 block text-[10px]">Nama Pemesan</span>
                     <strong className="text-slate-800">{selectedOrder.billing?.first_name || "-"} {selectedOrder.billing?.last_name || ""}</strong>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[10px]">No. Telepon / WhatsApp</span>
+                    <span className="text-slate-400 block text-[10px]">No. HP / WhatsApp</span>
                     <strong className="text-slate-800">{selectedOrder.billing?.phone || "-"}</strong>
                   </div>
                   <div className="col-span-2 pt-1">
@@ -593,21 +642,33 @@ const realTotalUsers = typeof userCountJson === 'number' ? userCountJson : 0;
                 </h4>
                 <div className="space-y-2 text-slate-600">
                   <div>
-                    <span className="text-slate-400 block text-[10px]">Item Produk / Unit Dipesan</span>
+                    <span className="text-slate-400 block text-[10px]">Kategori</span>
+                    <strong className="text-slate-800">{selectedOrder.jenis_pesanan || "Umum"}</strong>
+                  </div>
+
+                  <div>
+                    <span className="text-slate-400 block text-[10px]">Nama Paket / Produk</span>
                     <strong className="text-slate-800">{selectedOrder.line_items_name || "-"}</strong>
                   </div>
 
-                  {/* 📅 TANGGAL RESERVASI AWAL & AKHIR */}
-                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200/60">
-                    <div>
-                      <span className="text-slate-400 block text-[10px]">Tanggal Reservasi Awal</span>
+                  {/* Penyesuaian jadwal berdasarkan jenis pesanan */}
+                  {selectedOrder.jenis_pesanan === 'Homestay' ? (
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200/60">
+                      <div>
+                        <span className="text-slate-400 block text-[10px]">Tanggal Check-in</span>
+                        <strong className="text-emerald-700">{selectedOrder.tanggal_mulai || "-"}</strong>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block text-[10px]">Tanggal Check-out</span>
+                        <strong className="text-emerald-700">{selectedOrder.tanggal_selesai || "-"}</strong>
+                      </div>
+                    </div>
+                  ) : selectedOrder.jenis_pesanan === 'Paket Wisata' || selectedOrder.jenis_pesanan === 'Paket' ? (
+                    <div className="pt-2 border-t border-slate-200/60">
+                      <span className="text-slate-400 block text-[10px]">Jadwal Kunjungan</span>
                       <strong className="text-emerald-700">{selectedOrder.tanggal_mulai || selectedOrder.tanggal_reservasi || "-"}</strong>
                     </div>
-                    <div>
-                      <span className="text-slate-400 block text-[10px]">Tanggal Reservasi Akhir</span>
-                      <strong className="text-emerald-700">{selectedOrder.tanggal_selesai || "-"}</strong>
-                    </div>
-                  </div>
+                  ) : null}
 
                   <div>
                     <span className="text-slate-400 block text-[10px] mt-1">Waktu Pembuatan Order</span>
@@ -615,6 +676,23 @@ const realTotalUsers = typeof userCountJson === 'number' ? userCountJson : 0;
                   </div>
                 </div>
               </div>
+
+              {/* Tampilan Bukti Transfer jika diunggah user */}
+              {selectedOrder.bukti_url && (
+                <div className="bg-slate-50 p-4 rounded-2xl space-y-2 border border-slate-100">
+                  <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px] text-emerald-700">
+                    🧾 Bukti Transfer
+                  </h4>
+                  <a href={selectedOrder.bukti_url} target="_blank" rel="noopener noreferrer" className="block">
+                    <img 
+                      src={selectedOrder.bukti_url} 
+                      alt="Bukti Transfer" 
+                      className="w-full max-h-40 object-cover rounded-xl border border-slate-200 hover:opacity-95 transition" 
+                    />
+                  </a>
+                  <p className="text-[10px] text-slate-400 italic">Klik gambar untuk memperbesar.</p>
+                </div>
+              )}
 
               <div className="flex justify-between items-center bg-emerald-50/70 border border-emerald-100 p-4 rounded-2xl">
                 <div>
@@ -634,8 +712,8 @@ const realTotalUsers = typeof userCountJson === 'number' ? userCountJson : 0;
                 </div>
               </div>
 
-              {/* 🔘 TOMBOL KONFIRMASI PEMBAYARAN JIKA MASIH PENDING (TANPA CONFIRM/ALERT BAWAAN) */}
-              {selectedOrder.status === "pending" && (
+              {/* Tombol Konfirmasi Admin (Muncul selama status belum completed atau processing) */}
+              {selectedOrder.status !== "completed" && selectedOrder.status !== "processing" && (
                 <button 
                   onClick={() => handleMarkAsPaid(selectedOrder.id)}
                   disabled={updatingStatus}

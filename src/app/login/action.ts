@@ -18,9 +18,9 @@ export async function loginAction(formData: FormData) {
 
     // A. CEK APAKAH INI AKUN ADMIN SPESIFIK
     const isAdminAccount = 
-      (usernameOrEmail === 'faqihhasan217@gmail.com' || 
+      (usernameOrEmail === 'admindesawisatabojongrangkas@gmail.com' || 
        usernameOrEmail === 'desawisatabojongrangkas' ||
-       usernameOrEmail === 'faqihhasan') && 
+       usernameOrEmail === 'admindesa') && 
       password === 'bojongrangkas2026';
 
     if (isAdminAccount) {
@@ -155,7 +155,6 @@ export async function forgotPasswordAction(formData: FormData) {
   }
 
   try {
-    // Menggunakan endpoint bawaan WordPress untuk memicu reset password via email
     const res = await fetch(`${WP_URL}/wp/v2/users/lost-password`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

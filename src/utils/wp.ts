@@ -1,4 +1,4 @@
-const WP_URL = process.env.NEXT_PUBLIC_WORDPRESS_URL || 'https://desa-wisata-bojongrangkas.biznityhub.com/wp-json';
+const WP_URL = process.env.NEXT_PUBLIC_WORDPRESS_URL || 'https://desa-wisata-bojongrangkas.com/wp-json';
 
 // ========================================================
 // 1. INTERFACES (Tipe Data ACF & CPT)
@@ -80,8 +80,8 @@ export async function createWisataCPT(
   content: string, 
   acfData: ACFFields
 ) {
-  const CONSUMER_KEY = process.env.WC_CONSUMER_KEY || 'ck_3512f4b660cb493791156b8e2a57ed734fe92fe4';
-  const CONSUMER_SECRET = process.env.WC_CONSUMER_SECRET || 'cs_6e530c56ba5fdd875c311c8b24b2429fe5885db3';
+  const CONSUMER_KEY = process.env.WC_CONSUMER_KEY || 'ck_a291eafaf1c0e3dc9b1ce17f08deb2649f995acb';
+  const CONSUMER_SECRET = process.env.WC_CONSUMER_SECRET || 'cs_9c61e3491e0ed34fc00122ac655e729fd6c9d676';
   const authHeader = 'Basic ' + Buffer.from(`${CONSUMER_KEY}:${CONSUMER_SECRET}`).toString('base64');
 
   try {

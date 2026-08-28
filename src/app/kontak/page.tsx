@@ -1,13 +1,27 @@
 "use client";
 
 import { useState } from "react";
-import { Mail, Phone, MapPin, Send, MessageSquare, Loader2 } from "lucide-react";
+import { Mail, Phone, MapPin, Send, MessageSquare, Loader2, CheckCircle2, AlertTriangle, X } from "lucide-react";
 
 export default function KontakPage() {
   const [formData, setFormData] = useState({ name: "", email: "", message: "" });
   const [loading, setLoading] = useState(false);
 
-  const wpUrl = process.env.NEXT_PUBLIC_WORDPRESS_URL || "https://desa-wisata-bojongrangkas.biznityhub.com/wp-json";
+  // State Sistem Notifikasi Toast Modern & Beranimasi
+  const [toast, setToast] = useState<{ show: boolean, message: string, type: 'success' | 'error' }>({
+    show: false,
+    message: '',
+    type: 'success'
+  });
+
+  const showNotification = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ show: true, message, type });
+    setTimeout(() => {
+      setToast(prev => ({ ...prev, show: false }));
+    }, 4000);
+  };
+
+  const wpUrl = process.env.NEXT_PUBLIC_WORDPRESS_URL || "https://desa-wisata-bojongrangkas.com/wp-json";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,14 +43,14 @@ export default function KontakPage() {
       const data = await res.json();
 
       if (data.success) {
-        alert("Pesan kamu berhasil dikirim!");
+        showNotification("Pesan kamu berhasil dikirim!");
         setFormData({ name: "", email: "", message: "" });
       } else {
-        alert("Gagal mengirim pesan: " + (data.message || "Terjadi kesalahan."));
+        showNotification("Gagal mengirim pesan: " + (data.message || "Terjadi kesalahan."), "error");
       }
     } catch (err) {
       console.error("Error submitting contact form:", err);
-      alert("Koneksi ke server WordPress gagal. Silakan coba beberapa saat lagi.");
+      showNotification("Koneksi ke server WordPress gagal. Silakan coba beberapa saat lagi.", "error");
     } finally {
       setLoading(false);
     }
@@ -48,6 +62,36 @@ export default function KontakPage() {
       {/* Background Soft Glassy Glow Effects */}
       <div className="absolute top-10 left-1/4 w-96 h-96 bg-emerald-300/10 rounded-full blur-3xl pointer-events-none"></div>
       <div className="absolute top-1/3 right-10 w-96 h-96 bg-teal-300/10 rounded-full blur-3xl pointer-events-none"></div>
+
+      {/* SISTEM NOTIFIKASI TOAST MODERN & BERANIMASI */}
+      <div className={`fixed bottom-8 right-8 z-[999999] transition-all duration-500 transform ${
+        toast.show ? 'translate-y-0 opacity-100 scale-100' : 'translate-y-10 opacity-0 scale-95 pointer-events-none'
+      }`}>
+        <div className={`flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl backdrop-blur-xl border ${
+          toast.type === 'success' 
+            ? 'bg-slate-900/90 border-emerald-500/30 text-white' 
+            : 'bg-slate-900/90 border-rose-500/30 text-white'
+        }`}>
+          {toast.type === 'success' ? (
+            <div className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+              <CheckCircle2 size={18} />
+            </div>
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center shrink-0">
+              <AlertTriangle size={18} />
+            </div>
+          )}
+          <div className="text-xs font-medium tracking-tight">
+            {toast.message}
+          </div>
+          <button 
+            onClick={() => setToast(prev => ({ ...prev, show: false }))}
+            className="ml-2 text-slate-400 hover:text-white transition cursor-pointer"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      </div>
 
       <div className="max-w-7xl mx-auto space-y-12 relative z-10">
         
@@ -73,7 +117,7 @@ export default function KontakPage() {
               <div className="space-y-3.5 text-xs text-neutral-500 font-light">
                 <div className="flex gap-3 items-start">
                   <MapPin size={16} className="text-emerald-600 shrink-0 mt-0.5" />
-                  <span>Jl. Raya Bojong Rangkas No. 01, Kecamatan Ciampea, Kabupaten Bogor, Jawa Barat.</span>
+                  <span>BTN Sindangsari. Jl. Kenanga Raya no.3. rt03/RW07, Bojong Rangkas, Kec. Ciampea, Kabupaten Bogor, Jawa Barat 16620</span>
                 </div>
                 <div className="flex gap-3 items-center">
                   <Phone size={16} className="text-emerald-600 shrink-0" />
@@ -129,7 +173,7 @@ export default function KontakPage() {
               <button 
                 type="submit"
                 disabled={loading}
-                className="w-full bg-neutral-900 hover:bg-emerald-600 text-white text-xs font-bold uppercase tracking-wider py-3 rounded-xl transition shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                className="w-full bg-neutral-900 hover:bg-emerald-600 text-white text-xs font-bold uppercase tracking-wider py-3 rounded-xl transition shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
               >
                 {loading ? (
                   <>
@@ -147,7 +191,7 @@ export default function KontakPage() {
           {/* RIGHT COLUMN: GOOGLE MAPS EMBEDDED (7/12) */}
           <div className="lg:col-span-7 w-full h-full min-h-[400px] lg:min-h-[515px] bg-white/70 backdrop-blur-xl border border-white/85 p-3 rounded-[2.5rem] shadow-xl shadow-slate-200/50 overflow-hidden relative">
             <iframe
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3963.702759239217!2d106.6930146!3d-6.559155500000001!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e69db65ef957015%3A0x98c25453b1dc43bf!2sKantor%20Desa%20Bojongrangkas!5e0!3m2!1sid!2sid!4v1784318368633!5m2!1sid!2sid"
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3963.728820080395!2d106.699247!3d-6.5558784!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e69db43fda50743%3A0x378d53739ca67ca!2sCafe%20Garden%20Famille!5e0!3m2!1sid!2sid!4v1787947072089!5m2!1sid!2sid"
               className="w-full h-full min-h-[380px] lg:min-h-[490px] rounded-2xl border-0"
               allowFullScreen={false}
               loading="lazy"

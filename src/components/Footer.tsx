@@ -3,13 +3,13 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Mail, Phone, MapPin, Landmark, Heart } from "lucide-react";
+import { Mail, Phone, MapPin } from "lucide-react";
 
 export default function Footer() {
   const pathname = usePathname();
 
-  // 🚀 PROTEKSI OTOMATIS: Jika sedang di halaman login, footer tersembunyi total
- if (pathname === "/login" || pathname.startsWith("/admin")) {
+  // 🚀 PROTEKSI OTOMATIS: Jika sedang di halaman login atau admin, footer tersembunyi total
+  if (pathname === "/login" || pathname.startsWith("/admin")) {
     return null;
   }
 
@@ -48,7 +48,7 @@ export default function Footer() {
         {/* Kolom 2: Tautan Kelembagaan (2/12) */}
         <div className="md:col-span-2 space-y-3">
           <h4 className="text-[10px] font-bold uppercase tracking-widest text-white flex items-center gap-1">
- Informasi
+            Informasi
           </h4>
           <ul className="space-y-2 text-[11px] font-light">
             {linksMasyarakat.map((item) => (
@@ -75,17 +75,17 @@ export default function Footer() {
           </ul>
         </div>
 
-        {/* Kolom 4: Sekretariat (3/12) */}
+        {/* Kolom 4: Sekretariat (3/12) - Disamakan dengan halaman Kontak */}
         <div className="md:col-span-3 space-y-3">
           <h4 className="text-[10px] font-bold uppercase tracking-widest text-white">Kontak</h4>
           <ul className="space-y-2.5 text-[11px] font-light text-neutral-500">
             <li className="flex gap-2 items-start">
               <MapPin size={14} className="text-emerald-500 shrink-0 mt-0.5" />
-              <span>Kecamatan Ciampea, Kabupaten Bogor, Jawa Barat.</span>
+              <span>BTN Sindangsari. Jl. Kenanga Raya no.3. rt03/RW07, Bojong Rangkas, Kec. Ciampea, Kabupaten Bogor, Jawa Barat 16620</span>
             </li>
             <li className="flex gap-2 items-center">
               <Phone size={14} className="text-emerald-500 shrink-0" />
-              <span>+62 8123456789</span>
+              <span>+62 812-3456-7890</span>
             </li>
             <li className="flex gap-2 items-center">
               <Mail size={14} className="text-emerald-500 shrink-0" />
@@ -98,7 +98,7 @@ export default function Footer() {
 
       {/* Baris Hak Cipta Bawah */}
       <div className="max-w-7xl mx-auto px-6 mt-12 pt-6 border-t border-white/[0.03] flex flex-col sm:flex-row items-center justify-between gap-4 text-[10px] text-neutral-600 font-light">
-        <p>© {new Date().getFullYear()}Desa Wisata Bojong Rangkas. Hak Cipta Dilindungi.</p>
+        <p>© {new Date().getFullYear()} Desa Wisata Bojong Rangkas. Hak Cipta Dilindungi.</p>
       </div>
     </footer>
   );

@@ -15,7 +15,7 @@ export default function UserProfilPage() {
   });
   const [loading, setLoading] = useState(true);
 
-  const apiEndpoint = "https://desa-wisata-bojongrangkas.biznityhub.com/wp-json/wc-bridge/v1/profil-desa";
+  const apiEndpoint = "https://desa-wisata-bojongrangkas.com/wp-json/wc-bridge/v1/profil-desa";
 
   useEffect(() => {
     const fetchProfil = async () => {
@@ -47,7 +47,7 @@ export default function UserProfilPage() {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <Loader2 className="animate-spin text-emerald-600" size={32} />
-        <span className="ml-2 text-xs text-slate-500 font-medium tracking-wider">Memuat profil desa...</span>
+        <span className="ml-2 text-xs text-slate-500 font-medium tracking-wider">Loading...</span>
       </div>
     );
   }
