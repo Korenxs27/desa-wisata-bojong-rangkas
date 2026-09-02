@@ -2,9 +2,8 @@ import { api as wcApi } from "@/lib/woocommerce";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Script from "next/script";
-import BackButton from "@/components/BackButton"; // 🚀 Impor BackButton Pintar
+import BackButton from "@/components/BackButton"; 
 import { ShieldCheck, Layers, Scale, Maximize2, CheckCircle, AlertCircle } from "lucide-react";
-
 import ClientOrderForm from "../ClientOrderForm";
 
 interface WooCommerceImage {
@@ -40,7 +39,14 @@ interface ProdukDesa {
   stock_status: "instock" | "outofstock" | "onbackorder";
 }
 
-export default async function UMKMDetailPage({ params }: { params: Promise<{ slug: string }> | any }) {
+// Perbaiki tipe data params menjadi Promise untuk Next.js 15+
+interface PageProps {
+  params: Promise<{
+    slug: string;
+  }>;
+}
+
+export default async function UMKMDetailPage({ params }: PageProps) {
   const resolvedParams = await params;
   const slug = resolvedParams?.slug;
   
@@ -74,8 +80,6 @@ export default async function UMKMDetailPage({ params }: { params: Promise<{ slu
       <div className="max-w-7xl mx-auto px-6 pt-6 grid grid-cols-1 lg:grid-cols-3 gap-10 items-start">
         
         <div className="lg:col-span-2 space-y-6">
-          
-          {/* TOMBOL KEMBALI PINTAR NATIVE */}
           <div className="flex justify-start">
             <BackButton text="Kembali" />
           </div>
@@ -173,7 +177,6 @@ export default async function UMKMDetailPage({ params }: { params: Promise<{ slu
               </div>
             )}
 
-            {/* PROP productName DIKIRIM SECARA DINAMIS DISINI */}
             <ClientOrderForm 
               productId={product.id} 
               productName={product.name} 
