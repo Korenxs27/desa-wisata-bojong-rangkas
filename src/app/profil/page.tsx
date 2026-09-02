@@ -34,7 +34,7 @@ export default function UserProfilPage() {
           });
         }
       } catch (err) {
-        console.error("Gagal memuat profil user:", err);
+        console.error("Gagal memuat profil", err);
       } finally {
         setLoading(false);
       }

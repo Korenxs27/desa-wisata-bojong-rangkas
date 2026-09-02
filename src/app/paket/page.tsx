@@ -39,7 +39,7 @@ export default function KatalogPaketPage() {
           setPaketList(data);
         }
       } catch (err) {
-        console.error("Gagal mengambil data paket wisata:", err);
+        console.error("Gagal mengambil data", err);
       } finally {
         setLoading(false);
       }

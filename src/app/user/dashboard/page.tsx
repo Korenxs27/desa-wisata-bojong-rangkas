@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
   User, LogOut, Compass, MapPin, Bookmark, Settings, 
-  ArrowRight, ShieldCheck, Camera, History, Edit3, CheckCircle2, Package, Clock, AlertTriangle, RefreshCw, Trash2, Loader2, MessageCircle, X
+  ArrowRight, ShieldCheck, Camera, History, Edit3, CheckCircle2, Package, Clock, AlertTriangle, RefreshCw, Trash2, Loader2, MessageCircle, X, FileText, Upload
 } from 'lucide-react';
 
 export default function UserDashboard() {
@@ -454,11 +454,12 @@ export default function UserDashboard() {
                     const now = new Date().getTime();
                     const isPending = trx.status === 'pending';
                     const isExpired = isPending && (now - orderTime > 24 * 60 * 60 * 1000);
+                    const isPaid = trx.status === 'processing' || trx.status === 'completed';
 
                     return (
-                      <div key={trx.id} className="p-3.5 rounded-2xl bg-white/50 border border-slate-200/60 flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-3 truncate">
-                          <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                      <div key={trx.id} className="p-4 rounded-2xl bg-white/50 border border-slate-200/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div className="flex items-center gap-3 truncate w-full sm:w-auto">
+                          <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
                             <Package size={18} />
                           </div>
                           <div className="truncate">
@@ -482,8 +483,32 @@ export default function UserDashboard() {
                             </div>
                           </div>
                         </div>
-                        <div className="text-right shrink-0">
-                          <span className="text-xs font-extrabold text-slate-700 block">Rp. {Number(trx.total || 0).toLocaleString("id-ID")}</span>
+
+                        <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-200/50">
+                          <span className="text-xs font-extrabold text-slate-700">Rp. {Number(trx.total || 0).toLocaleString("id-ID")}</span>
+                          
+                          {/* Tombol Aksi Berdasarkan Status Pesanan */}
+                          <div className="flex items-center gap-1.5">
+                            {isPending && !isExpired && (
+                              <Link 
+                                href={`/konfirmasi-transfer?order_id=${trx.id}&amount=${trx.total}`}
+                                className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-bold rounded-xl transition shadow-sm flex items-center gap-1"
+                              >
+                                <Upload size={12} /> Upload Bukti
+                              </Link>
+                            )}
+
+                            {isPaid && (
+                              <a 
+                                href={`${wpUrl}/wc-bridge/v1/download-invoice?order_id=${trx.id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded-xl transition shadow-sm flex items-center gap-1"
+                              >
+                                <FileText size={12} /> Invoice
+                              </a>
+                            )}
+                          </div>
                         </div>
                       </div>
                     );
@@ -493,8 +518,7 @@ export default function UserDashboard() {
             </div>
 
             <div className="mt-6 pt-4 border-t border-slate-100/80 flex justify-between items-center text-[11px] text-slate-400 font-light">
-              <span>*Pesanan pending otomatis terhapus dalam 24 jam.</span>
-              <span className="font-semibold text-emerald-600">Secure Midtrans</span>
+              <span className="font-semibold text-emerald-600">*Pesanan pending otomatis terhapus dalam 24 jam.</span>
             </div>
           </div>
 

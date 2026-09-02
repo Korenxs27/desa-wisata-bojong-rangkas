@@ -115,7 +115,7 @@ export default function ProdukPage() {
         setProducts(finalProducts);
       } catch (err) {
         console.error("Gagal mengambil data produk:", err);
-        setErrorMessage("Gagal memuat data komplit dari server WooCommerce.");
+        setErrorMessage("Gagal memuat data");
       } finally {
         setLoading(false);
       }

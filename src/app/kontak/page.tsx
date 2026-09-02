@@ -121,7 +121,7 @@ export default function KontakPage() {
                 </div>
                 <div className="flex gap-3 items-center">
                   <Phone size={16} className="text-emerald-600 shrink-0" />
-                  <span>+62 812-3456-7890</span>
+                  <span>+62 8123456789</span>
                 </div>
                 <div className="flex gap-3 items-center">
                   <Mail size={16} className="text-emerald-600 shrink-0" />
@@ -140,7 +140,7 @@ export default function KontakPage() {
                   type="text" 
                   required
                   className="w-full bg-white/60 border border-neutral-200/80 rounded-xl px-3 py-2.5 text-xs font-light outline-none focus:border-emerald-500 transition"
-                  placeholder="Masukkan nama Anda"
+                  placeholder="Masukkan nama lengkap Anda"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 />
@@ -164,7 +164,7 @@ export default function KontakPage() {
                   rows={4}
                   required
                   className="w-full bg-white/60 border border-neutral-200/80 rounded-xl px-3 py-2.5 text-xs font-light outline-none focus:border-emerald-500 transition resize-none"
-                  placeholder="Tulis pesan Anda di sini..."
+                  placeholder="Tuliskan pesan Anda di sini..."
                   value={formData.message}
                   onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                 />

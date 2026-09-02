@@ -21,7 +21,7 @@ export default function AdminWisataPage() {
   const [durasi, setDurasi] = useState("08:00 - 17:00 WIB");
   const [lokasi, setLokasi] = useState("");
   const [statusBuka, setStatusBuka] = useState("Buka"); 
-  const [kategoriWisata, setKategoriWisata] = useState("Traking"); 
+  const [kategoriWisata, setKategoriWisata] = useState("Wisata Alam"); 
   const [deskripsi, setDeskripsi] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
 
@@ -62,7 +62,7 @@ export default function AdminWisataPage() {
 
     setDurasi(acf.durasi ?? acf.jam_operasional ?? "08:00 - 17:00 WIB");
     setStatusBuka(acf.status_buka ?? acf.status_operasional ?? "Buka");
-    setKategoriWisata(acf.kategori_wisata ?? "Traking");
+    setKategoriWisata(acf.kategori_wisata ?? "Wisata Alam");
 
     setDeskripsi(item.content?.rendered?.replace(/<[^>]+>/g, '') || "");
   };
@@ -74,7 +74,7 @@ export default function AdminWisataPage() {
     setDurasi("08:00 - 17:00 WIB");
     setLokasi("");
     setStatusBuka("Buka");
-    setKategoriWisata("Traking");
+    setKategoriWisata("Wisata Alam");
     setDeskripsi("");
     setImageFile(null);
   };
@@ -91,8 +91,8 @@ export default function AdminWisataPage() {
       formData.append("post_type", "wisata"); 
       formData.append("title", title);
       formData.append("harga", harga);          
-      formData.append("durasi", durasi);       
-      formData.append("lokasi", lokasi);       
+      formData.append("durasi", durasi);      
+      formData.append("lokasi", lokasi);      
       formData.append("status_buka", statusBuka); 
       formData.append("kategori_wisata", kategoriWisata); 
       formData.append("content", deskripsi);
@@ -126,7 +126,6 @@ export default function AdminWisataPage() {
   };
 
   const handleDelete = async (id: number) => {
-  // Mengganti confirm() dengan toast konfirmasi modern
   toast((t) => (
     <div className="flex flex-col gap-3">
       <p className="text-xs font-semibold text-slate-800">
@@ -135,7 +134,7 @@ export default function AdminWisataPage() {
       <div className="flex gap-2 justify-end">
         <button
           onClick={async () => {
-            toast.dismiss(t.id); // Tutup toast konfirmasi
+            toast.dismiss(t.id);
             
             const loadingToast = toast.loading("Menghapus objek wisata...");
             try {
@@ -177,10 +176,8 @@ export default function AdminWisataPage() {
 
   return (
     <div className="min-h-screen bg-slate-100 p-4 sm:p-6 lg:p-8">
-      {/* 🟢 TOASTER MANDIRI KHUSUS HALAMAN WISATA */}
       <Toaster position="top-right" reverseOrder={false} />
 
-      {/* Header Responsif */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3 sm:gap-4">
           <Link href="/admin" className="p-2.5 bg-white rounded-xl shadow-sm hover:bg-slate-50 transition shrink-0">
@@ -223,31 +220,17 @@ export default function AdminWisataPage() {
               />
             </div>
 
-            {/* Dropdown Kategori Wisata */}
+            {/* Dropdown Kategori Wisata Diperbarui */}
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">Kategori & Jenis Wisata</label>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">Kategori Wisata</label>
               <select 
                 value={kategoriWisata} 
                 onChange={(e) => setKategoriWisata(e.target.value)}
                 className="w-full px-3.5 py-2 text-xs border rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 bg-white font-medium"
               >
-                <optgroup label="🌲 Wisata Alam">
-                  <option value="Traking">Traking</option>
-                  <option value="Camping Ground">Camping Ground</option>
-                  <option value="Susur Goa">Susur Goa</option>
-                  <option value="Tubing Papalidan">Tubing Papalidan</option>
-                  <option value="Liwetan di Gunung atau Sungai">Liwetan di Gunung atau Sungai</option>
-                </optgroup>
-
-                <optgroup label="🌱 Wisata Agro">
-                  <option value="Mancing Ikan">Mancing Ikan</option>
-                  <option value="Petik Sayur Hidroponik">Petik Sayur Hidroponik</option>
-                  <option value="Liwetan di Kebun Agro">Liwetan di Kebun Agro</option>
-                </optgroup>
-
-                <optgroup label="✨ Edukasi">
-                  <option value="Edukasi Umum">Edukasi / Pengetahuan Lokal</option>
-                </optgroup>
+                <option value="Wisata Alam">🌲 Wisata Alam</option>
+                <option value="Wisata Agro">🌱 Wisata Agro</option>
+                <option value="Wisata Edukasi">✨ Wisata Edukasi</option>
               </select>
             </div>
 
@@ -372,7 +355,6 @@ export default function AdminWisataPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
                           <h3 className="font-bold text-sm text-slate-800 break-words">{item.title?.rendered}</h3>
-                          {/* Badge Status */}
                           <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
                             isItemOpen ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"
                           }`}>
@@ -397,7 +379,6 @@ export default function AdminWisataPage() {
                       </div>
                     </div>
 
-                    {/* Tombol Aksi (Edit & Hapus) */}
                     <div className="flex items-center gap-2 self-end sm:self-center shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-200/60 w-full sm:w-auto justify-end">
                       <button
                         onClick={() => handleStartEdit(item)}

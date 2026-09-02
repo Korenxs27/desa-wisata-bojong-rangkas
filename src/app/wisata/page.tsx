@@ -39,7 +39,7 @@ export default function KatalogWisataPage() {
           setWisataList(data);
         }
       } catch (err) {
-        console.error("Gagal mengambil data objek wisata:", err);
+        console.error("Gagal mengambil data", err);
       } finally {
         setLoading(false);
       }

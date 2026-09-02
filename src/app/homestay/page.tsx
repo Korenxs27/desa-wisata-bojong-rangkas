@@ -39,7 +39,7 @@ export default function KatalogHomestayPage() {
           setHomestayList(data);
         }
       } catch (err) {
-        console.error("Gagal mengambil data homestay:", err);
+        console.error("Gagal mengambil data", err);
       } finally {
         setLoading(false);
       }
