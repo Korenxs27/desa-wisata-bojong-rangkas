@@ -60,11 +60,17 @@ export default function AdminWisataPage() {
       
     setLokasi(decodedLokasi);
 
-    setDurasi(acf.durasi ?? acf.jam_operasional ?? "08:00 - 17:00 WIB");
-    setStatusBuka(acf.status_buka ?? acf.status_operasional ?? "Buka");
+    setDurasi(acf.jam_operasional ?? acf.durasi ?? "08:00 - 17:00 WIB");
+    
+    // Normalisasi penanganan status buka saat edit
+    const statusFromApi = acf.status_buka ?? acf.status_operasional ?? "Buka";
+    const cleanStatus = String(statusFromApi).trim();
+    setStatusBuka(cleanStatus.toLowerCase() === "tutup" ? "Tutup" : "Buka");
+
     setKategoriWisata(acf.kategori_wisata ?? "Wisata Alam");
 
-    setDeskripsi(item.content?.rendered?.replace(/<[^>]+>/g, '') || "");
+    const rawContent = item.content?.rendered || (item as any).excerpt?.rendered || acf.deskripsi || "";
+setDeskripsi(rawContent.replace(/<[^>]+>/g, '').trim());
   };
 
   const resetForm = () => {
@@ -126,53 +132,53 @@ export default function AdminWisataPage() {
   };
 
   const handleDelete = async (id: number) => {
-  toast((t) => (
-    <div className="flex flex-col gap-3">
-      <p className="text-xs font-semibold text-slate-800">
-        Apakah Anda yakin ingin menghapus Objek Wisata ini secara permanen?
-      </p>
-      <div className="flex gap-2 justify-end">
-        <button
-          onClick={async () => {
-            toast.dismiss(t.id);
-            
-            const loadingToast = toast.loading("Menghapus objek wisata...");
-            try {
-              const res = await fetch("https://desa-wisata-bojongrangkas.com/wp-json/wc-bridge/v1/delete-item", {
-                method: "DELETE",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ id: id }),
-              });
+    toast((t) => (
+      <div className="flex flex-col gap-3">
+        <p className="text-xs font-semibold text-slate-800">
+          Apakah Anda yakin ingin menghapus Objek Wisata ini secara permanen?
+        </p>
+        <div className="flex gap-2 justify-end">
+          <button
+            onClick={async () => {
+              toast.dismiss(t.id);
+              
+              const loadingToast = toast.loading("Menghapus objek wisata...");
+              try {
+                const res = await fetch("https://desa-wisata-bojongrangkas.com/wp-json/wc-bridge/v1/delete-item", {
+                  method: "DELETE",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ id: id }),
+                });
 
-              const data = await res.json();
-              toast.dismiss(loadingToast);
+                const data = await res.json();
+                toast.dismiss(loadingToast);
 
-              if (res.ok && data.success) {
-                toast.success("Objek Wisata berhasil dihapus!");
-                setWisataList((prev) => prev.filter((item) => item.id !== id));
-              } else {
-                toast.error(`Gagal Menghapus: ${data.message || "Periksa koneksi backend."}`);
+                if (res.ok && data.success) {
+                  toast.success("Objek Wisata berhasil dihapus!");
+                  setWisataList((prev) => prev.filter((item) => item.id !== id));
+                } else {
+                  toast.error(`Gagal Menghapus: ${data.message || "Periksa koneksi backend."}`);
+                }
+              } catch (error) {
+                console.error("Delete Wisata Error:", error);
+                toast.dismiss(loadingToast);
+                toast.error("Terjadi kesalahan jaringan saat menghapus Objek Wisata.");
               }
-            } catch (error) {
-              console.error("Delete Wisata Error:", error);
-              toast.dismiss(loadingToast);
-              toast.error("Terjadi kesalahan jaringan saat menghapus Objek Wisata.");
-            }
-          }}
-          className="px-3 py-1.5 bg-red-600 text-white text-[10px] font-bold rounded-lg hover:bg-red-700 transition"
-        >
-          Ya, Hapus
-        </button>
-        <button
-          onClick={() => toast.dismiss(t.id)}
-          className="px-3 py-1.5 bg-slate-100 text-slate-600 text-[10px] font-bold rounded-lg hover:bg-slate-200 transition"
-        >
-          Batal
-        </button>
+            }}
+            className="px-3 py-1.5 bg-red-600 text-white text-[10px] font-bold rounded-lg hover:bg-red-700 transition"
+          >
+            Ya, Hapus
+          </button>
+          <button
+            onClick={() => toast.dismiss(t.id)}
+            className="px-3 py-1.5 bg-slate-100 text-slate-600 text-[10px] font-bold rounded-lg hover:bg-slate-200 transition"
+          >
+            Batal
+          </button>
+        </div>
       </div>
-    </div>
-  ), { duration: 5000 });
-};
+    ), { duration: 5000 });
+  };
 
   return (
     <div className="min-h-screen bg-slate-100 p-4 sm:p-6 lg:p-8">
@@ -220,7 +226,6 @@ export default function AdminWisataPage() {
               />
             </div>
 
-            {/* Dropdown Kategori Wisata Diperbarui */}
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1">Kategori Wisata</label>
               <select 
@@ -307,7 +312,7 @@ export default function AdminWisataPage() {
                 editingItem ? "bg-amber-600 hover:bg-amber-700" : "bg-emerald-600 hover:bg-emerald-700"
               }`}
             >
-              {isSubmitting ? "Sychronizing..." : editingItem ? "Update Objek Wisata" : "+ Simpan Objek Wisata"}
+              {isSubmitting ? "Synchronizing..." : editingItem ? "Update Objek Wisata" : "+ Simpan Objek Wisata"}
             </button>
           </form>
         </div>
@@ -330,10 +335,13 @@ export default function AdminWisataPage() {
                 const rawHarga = acf.harga ?? acf.harga_tiket ?? (item as any).harga ?? "0";
                 const itemHarga = !isNaN(Number(rawHarga)) ? Number(rawHarga) : 0;
 
-                const itemDurasi = acf.durasi ?? acf.jam_operasional ?? "08:00 - 17:00";
-                const itemStatus = acf.status_buka ?? acf.status_operasional ?? "Buka";
+                const itemDurasi = acf.jam_operasional ?? acf.durasi ?? "08:00 - 17:00 WIB";
+                const itemStatus = acf.status_buka ?? acf.status_operasional ?? (item as any).status_buka ?? "Buka";
                 const itemKategori = acf.kategori_wisata ?? "Wisata Alam";
-                const isItemOpen = String(itemStatus).trim().toLowerCase() === "buka";
+
+                // LOGIKA Fleksibel: Menganggap status Buka jika nilainya buka/open/1/true atau jika belum diisi data awal
+                const rawStatusStr = String(itemStatus).trim().toLowerCase();
+                const isItemOpen = rawStatusStr === "buka" || rawStatusStr === "open" || rawStatusStr === "1" || rawStatusStr === "true" || rawStatusStr === "";
 
                 return (
                   <div key={item.id} className="p-3.5 sm:p-4 rounded-xl border border-slate-100 hover:border-slate-200 transition bg-slate-50/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 w-full">
@@ -359,7 +367,7 @@ export default function AdminWisataPage() {
                             isItemOpen ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"
                           }`}>
                             {isItemOpen ? <CircleCheck size={10} /> : <CircleX size={10} />}
-                            {itemStatus}
+                            {isItemOpen ? "Buka" : "Tutup"}
                           </span>
                         </div>
 

@@ -6,6 +6,9 @@ import "@/app/globals.css";
 export const metadata: Metadata = {
   title: "Desa Wisata Bojong Rangkas",
   description: "Ekosistem Wisata Unggulan & UMKM Modern",
+  verification: {
+    google: "-GukAdot1ea9HfY4LUuKklWjEVhsRXa6_-mNwKGc5uU",
+  },
 };
 
 export default function RootLayout({

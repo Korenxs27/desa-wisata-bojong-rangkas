@@ -179,7 +179,7 @@ export default function KatalogWisataPage() {
               const mediaEmbed = wisata._embedded?.["wp:featuredmedia"]?.[0];
               const imageUrl = mediaEmbed?.source_url || "/placeholder-travel.jpg";
 
-              // 🔍 PEMBACA GANDA ACF (Aman dari error TypeScript)
+              // 🔍 PEMBACA GANDA ACF
               const acf = (wisata as any).acf || {};
 
               const rawPrice = acf.harga ?? acf.harga_tiket ?? 0;
@@ -190,6 +190,13 @@ export default function KatalogWisataPage() {
               const isOpen = statusValue.toLowerCase() === "buka";
               const isBookmarked = bookmarkedIds.includes(wisata.id);
               const isThisCardLoading = bookmarkLoadingId === wisata.id;
+
+              // 📝 MENGAMBIL DESKRIPSI DARI WP & MEMBATASI PANJANG TEKS
+              const rawDesc = (wisata as any).content?.rendered || (wisata as any).excerpt?.rendered || acf.deskripsi_singkat || "";
+              const cleanDesc = rawDesc.replace(/<[^>]*>?/gm, '').trim();
+              const shortDesc = cleanDesc.length > 100 
+                ? cleanDesc.substring(0, 100) + "..." 
+                : cleanDesc || "Nikmati keindahan dan keseruan wisata lokal pilihan.";
 
               return (
                 <div 
@@ -229,7 +236,7 @@ export default function KatalogWisataPage() {
                   </div>
 
                   {/* Konten */}
-                  <div className="p-6 flex flex-col flex-grow space-y-5 bg-white/40 backdrop-blur-md">
+                  <div className="p-6 flex flex-col flex-grow space-y-4 bg-white/40 backdrop-blur-md">
                     <div className="space-y-2 flex-grow">
                       <div className="flex items-center gap-1.5 text-[11px] font-medium">
                         <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-bold shadow-sm ${
@@ -243,6 +250,11 @@ export default function KatalogWisataPage() {
                       <h2 className="font-bold text-sm text-neutral-900 uppercase tracking-tight group-hover:text-emerald-600 transition truncate pt-0.5">
                         {wisata.title.rendered}
                       </h2>
+
+                      {/* DESKRIPSI RINGKAS DARI BACKEND */}
+                      <p className="text-xs text-neutral-500 font-light line-clamp-2 leading-relaxed pt-1">
+                        {shortDesc}
+                      </p>
                     </div>
 
                     {/* Harga Tiket & Tombol */}
