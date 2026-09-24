@@ -5,7 +5,6 @@ import BackButton from "@/components/BackButton";
 import { ShieldCheck, Layers, Scale, Maximize2, CheckCircle, AlertCircle } from "lucide-react";
 import ClientOrderForm from "../ClientOrderForm";
 
-// 🚀 Memaksa Next.js untuk selalu mengambil data paling segar (real-time) dari WordPress
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
@@ -55,7 +54,6 @@ export default async function UMKMDetailPage({ params }: PageProps) {
   let product: ProdukDesa | null = null;
 
   try {
-    // 1. Mengambil data via WooCommerce Store API (Public tanpa butuh Consumer Key)
     const res = await fetch(
       `https://desa-wisata-bojongrangkas.com/wp-json/wc/store/v1/products?slug=${slug}`,
       { cache: "no-store" }
@@ -65,13 +63,16 @@ export default async function UMKMDetailPage({ params }: PageProps) {
     if (Array.isArray(products) && products.length > 0) {
       const item = products[0];
       
-      // Mapping struktur data WooCommerce Store API
+      // 🚀 PERBAIKAN: Ambil nilai harga langsung tanpa dibagi 100 agar sinkron dengan admin panel (misal: Rp 10.000)
+      const rawPrice = item.prices?.price ? parseInt(item.prices.price) : 0;
+      const finalPrice = rawPrice > 10000000 ? rawPrice / 100 : rawPrice; // Menyesuaikan jika store API mengembalikan minor unit
+
       product = {
         id: item.id,
         name: item.name,
-        price: item.prices?.price ? (parseInt(item.prices.price) / 100).toString() : "0",
-        regular_price: item.prices?.regular_price ? (parseInt(item.prices.regular_price) / 100).toString() : "",
-        sale_price: item.prices?.sale_price ? (parseInt(item.prices.sale_price) / 100).toString() : "",
+        price: finalPrice.toString(),
+        regular_price: item.prices?.regular_price ? item.prices.regular_price.toString() : "",
+        sale_price: item.prices?.sale_price ? item.prices.sale_price.toString() : "",
         description: item.description || "",
         short_description: item.short_description || "",
         slug: item.slug,
@@ -82,7 +83,6 @@ export default async function UMKMDetailPage({ params }: PageProps) {
         stock_status: item.is_in_stock ? "instock" : "outofstock"
       };
     } else {
-      // 2. Fallback ke WP REST API standar jika Store API mengembalikan array kosong
       const resFallback = await fetch(
         `https://desa-wisata-bojongrangkas.com/wp-json/wp/v2/product?slug=${slug}&_embed`,
         { cache: "no-store" }
@@ -113,7 +113,6 @@ export default async function UMKMDetailPage({ params }: PageProps) {
     console.error("Gagal memuat detail produk WooCommerce:", error);
   }
 
-  // Jika produk tidak ditemukan di WordPress, tampilkan halaman 404
   if (!product) return notFound();
 
   const isSale = Boolean(product.sale_price && product.regular_price);
@@ -122,7 +121,6 @@ export default async function UMKMDetailPage({ params }: PageProps) {
   return (
     <div className="min-h-screen bg-[#FAFAFA] text-neutral-800 antialiased pb-20 selection:bg-emerald-100 pt-28">
       
-      {/* Midtrans Snap Script */}
       <Script 
         src="https://app.midtrans.com/snap/snap.js" 
         data-client-key="Mid-client-q343rAbCQUljWRLn" 
@@ -131,7 +129,6 @@ export default async function UMKMDetailPage({ params }: PageProps) {
 
       <div className="max-w-7xl mx-auto px-6 pt-6 grid grid-cols-1 lg:grid-cols-3 gap-10 items-start">
         
-        {/* Kolom Kiri: Foto & Deskripsi Produk */}
         <div className="lg:col-span-2 space-y-6">
           <div className="flex justify-start">
             <BackButton text="Kembali" />
@@ -148,13 +145,10 @@ export default async function UMKMDetailPage({ params }: PageProps) {
                   className="object-cover"
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-neutral-400 text-xs italic">
-                  Tidak ada gambar
-                </div>
+                <div className="w-full h-full flex items-center justify-center text-neutral-400 text-xs italic">Tidak ada gambar</div>
               )}
             </div>
 
-            {/* Galeri Foto Tambahan */}
             {product.images && product.images.length > 1 && (
               <div className="grid grid-cols-4 gap-4">
                 {product.images.slice(1).map((img) => (
@@ -166,7 +160,6 @@ export default async function UMKMDetailPage({ params }: PageProps) {
             )}
           </div>
 
-          {/* Kategori & Judul */}
           <div className="space-y-2 pt-2">
             <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-600 bg-emerald-50/60 px-3 py-1 rounded-full border border-emerald-100/50">
               <Layers size={10}/> {product.categories && product.categories.length > 0 ? product.categories[0].name : "Produk Desa"}
@@ -174,7 +167,6 @@ export default async function UMKMDetailPage({ params }: PageProps) {
             <h1 className="text-4xl font-light font-serif tracking-tight text-neutral-900 pt-1">{product.name}</h1>
           </div>
 
-          {/* Deskripsi Lengkap */}
           <div className="bg-white/60 backdrop-blur-md p-8 rounded-[28px] border border-neutral-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.005)]">
             <h2 className="text-lg font-medium tracking-tight text-neutral-900 mb-4">Informasi Produk</h2>
             <div 
@@ -184,7 +176,6 @@ export default async function UMKMDetailPage({ params }: PageProps) {
           </div>
         </div>
 
-        {/* Kolom Kanan: Card Harga & Form Transaksi */}
         <div className="lg:col-span-1 lg:sticky lg:top-28">
           <div className="bg-white/70 backdrop-blur-xl border border-neutral-200/60 p-8 rounded-[32px] shadow-xl shadow-neutral-100/30 space-y-6">
             
@@ -216,7 +207,6 @@ export default async function UMKMDetailPage({ params }: PageProps) {
               </div>
             </div>
 
-            {/* Spesifikasi Logistik */}
             {(product.weight || hasDimensions) && (
               <div className="space-y-3 bg-neutral-50/60 p-4 rounded-2xl border border-neutral-100/80 text-xs font-light text-neutral-500">
                 <span className="text-[10px] uppercase font-bold text-neutral-400 block mb-1">Spesifikasi Logistik</span>
@@ -237,7 +227,6 @@ export default async function UMKMDetailPage({ params }: PageProps) {
               </div>
             )}
 
-            {/* Component Client Form Pemesanan */}
             <ClientOrderForm 
               productId={product.id} 
               productName={product.name} 
