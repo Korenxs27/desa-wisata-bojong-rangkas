@@ -6,7 +6,7 @@ import toast, { Toaster } from "react-hot-toast";
 import { 
   ArrowLeft, Plus, Home, RefreshCw, User, Tag, 
   Edit3, Trash2, X, Upload, Image as ImageIcon, CheckCircle2, 
-  CreditCard, QrCode 
+  CreditCard, QrCode, MessageSquare 
 } from "lucide-react";
 import { HomestayWarga } from "@/types/homestay";
 
@@ -25,6 +25,10 @@ export default function AdminHomestayPage() {
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
+  const [isSavingWa, setIsSavingWa] = useState(false);
+
+  // State Nomor WhatsApp Konfirmasi Admin
+  const [adminWhatsApp, setAdminWhatsApp] = useState("6281234567890");
 
   const [editingItem, setEditingItem] = useState<HomestayWarga | null>(null);
 
@@ -53,14 +57,23 @@ export default function AdminHomestayPage() {
   const fetchHomestayData = async () => {
     setLoading(true);
     try {
+      // 1. Fetch Data Homestay
       const res = await fetch("https://desa-wisata-bojongrangkas.com/wp-json/wp/v2/homestay?_embed", { cache: "no-store" });
       const data = await res.json();
       if (Array.isArray(data)) setHomestays(data);
 
+      // 2. Fetch Metode Pembayaran
       const resPay = await fetch("https://desa-wisata-bojongrangkas.com/wp-json/wc-bridge/v1/metode-pembayaran", { cache: "no-store" });
       const dataPay = await resPay.json();
       if (dataPay.success && Array.isArray(dataPay.metode_pembayaran)) {
         setPaymentMethods(dataPay.metode_pembayaran);
+      }
+
+      // 3. Fetch Nomor WhatsApp Admin Konfirmasi
+      const resWa = await fetch("https://desa-wisata-bojongrangkas.com/wp-json/wc-bridge/v1/admin-whatsapp", { cache: "no-store" });
+      const dataWa = await resWa.json();
+      if (dataWa.success && dataWa.whatsapp_number) {
+        setAdminWhatsApp(dataWa.whatsapp_number);
       }
     } catch (err) {
       console.error("Gagal load data:", err);
@@ -73,6 +86,33 @@ export default function AdminHomestayPage() {
   useEffect(() => {
     fetchHomestayData();
   }, []);
+
+  const handleSaveWhatsApp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingWa(true);
+    const loadingToast = toast.loading("Menyimpan nomor WhatsApp...");
+
+    try {
+      const res = await fetch("https://desa-wisata-bojongrangkas.com/wp-json/wc-bridge/v1/admin-whatsapp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ whatsapp_number: adminWhatsApp }),
+      });
+      const data = await res.json();
+      toast.dismiss(loadingToast);
+
+      if (data.success) {
+        toast.success("Nomor WhatsApp konfirmasi berhasil disimpan!");
+      } else {
+        toast.error(`Gagal menyimpan: ${data.message || "Kesalahan server"}`);
+      }
+    } catch (err) {
+      toast.dismiss(loadingToast);
+      toast.error("Terjadi kesalahan jaringan.");
+    } finally {
+      setIsSavingWa(false);
+    }
+  };
 
   const handleStartEdit = (item: HomestayWarga) => {
     setEditingItem(item);
@@ -166,7 +206,6 @@ export default function AdminHomestayPage() {
       existingGallery.forEach((url) => formData.append("existing_gallery[]", url));
       galleryFiles.forEach((file) => formData.append("gallery_files[]", file));
 
-      // CATATAN: Jangan sertakan header Content-Type agar browser menangani boundary FormData secara otomatis.
       const res = await fetch("https://desa-wisata-bojongrangkas.com/wp-json/wc-bridge/v1/upsert-item", {
         method: "POST",
         body: formData,
@@ -310,7 +349,7 @@ export default function AdminHomestayPage() {
           </Link>
           <div>
             <h1 className="text-lg sm:text-xl font-bold text-slate-800">Kelola Homestay Warga & Metode Pembayaran</h1>
-            <p className="text-xs text-slate-500">Full CRUD Homestay, Fasilitas Dinamis, Galeri Foto & Pengaturan Rekening</p>
+            <p className="text-xs text-slate-500">Full CRUD Homestay, Fasilitas Dinamis, Galeri Foto, WhatsApp & Rekening</p>
           </div>
         </div>
 
@@ -322,8 +361,30 @@ export default function AdminHomestayPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 items-start">
         
-        {/* KOLOM KIRI: FORM HOMESTAY & FORM PEMBAYARAN */}
+        {/* KOLOM KIRI: FORM WHATSAPP, FORM HOMESTAY & FORM PEMBAYARAN */}
         <div className="space-y-6">
+          
+          {/* FORM WHATSAPP KONFIRMASI */}
+          <div className="bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-200/60">
+            <h2 className="text-base font-bold text-slate-800 mb-2 flex items-center gap-2">
+              <MessageSquare size={18} className="text-emerald-600" /> WhatsApp Konfirmasi
+            </h2>
+            <p className="text-[11px] text-slate-500 mb-3">Nomor tujuan user untuk konfirmasi reservasi homestay.</p>
+            <form onSubmit={handleSaveWhatsApp} className="space-y-3">
+              <input
+                type="text" required value={adminWhatsApp} onChange={(e) => setAdminWhatsApp(e.target.value)}
+                placeholder="6281234567890"
+                className="w-full px-3.5 py-2 text-xs border rounded-xl outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+              <button
+                type="submit" disabled={isSavingWa}
+                className="w-full py-2 font-bold text-xs text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md transition disabled:opacity-50"
+              >
+                {isSavingWa ? "Menyimpan..." : "Simpan Nomor WhatsApp"}
+              </button>
+            </form>
+          </div>
+
           {/* FORM HOMESTAY */}
           <div className="bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-200/60">
             <div className="flex items-center justify-between mb-4">

@@ -7,6 +7,11 @@ import { usePathname, useRouter } from "next/navigation";
 import { Search, User, LogIn, LogOut, Menu, X } from "lucide-react";
 import SearchModal from "./SearchModal";
 
+interface MenuItem {
+  name: string;
+  href: string;
+}
+
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
@@ -14,14 +19,137 @@ export default function Navbar() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // STATE STATUS LOGIN & AVATAR
+  // State menu dinamis (Awal diisi menu dasar)
+  const [availableMenus, setAvailableMenus] = useState<MenuItem[]>([
+    { name: "Beranda", href: "/" },
+    { name: "Profil Desa", href: "/profil" },
+    { name: "Gallery", href: "/gallery" },
+    { name: "Kontak", href: "/kontak" },
+  ]);
+
+  // State status login & avatar
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userRole, setUserRole] = useState("");
   const [userName, setUserName] = useState("");
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
 
+  // FUNGSI CEK KETERSEDIAAN DATA SECARA PRESISI MULTI-FORMAT
+  const checkAvailableModules = async () => {
+    const baseMenus: MenuItem[] = [
+      { name: "Beranda", href: "/" },
+      { name: "Profil Desa", href: "/profil" },
+    ];
+
+    const dynamicCandidates = [
+      {
+        name: "Wisata",
+        href: "/wisata",
+        endpoints: [
+          "https://desa-wisata-bojongrangkas.com/wp-json/wp/v2/wisata?per_page=1",
+        ],
+      },
+      {
+        name: "Homestay",
+        href: "/homestay",
+        endpoints: [
+          "https://desa-wisata-bojongrangkas.com/wp-json/wp/v2/homestay?per_page=1",
+        ],
+      },
+      {
+        name: "Paket Wisata",
+        href: "/paket",
+        endpoints: [
+          "https://desa-wisata-bojongrangkas.com/wp-json/wc-bridge/v1/paket-wisata",
+          "https://desa-wisata-bojongrangkas.com/wp-json/wp/v2/paket_wisata?per_page=1",
+          "https://desa-wisata-bojongrangkas.com/wp-json/wp/v2/paket?per_page=1",
+          "https://desa-wisata-bojongrangkas.com/wp-json/wc/store/v1/products?per_page=50",
+        ],
+      },
+      {
+        name: "UMKM",
+        href: "/umkm",
+        endpoints: [
+          "https://desa-wisata-bojongrangkas.com/wp-json/wc/store/v1/products?per_page=50",
+          "https://desa-wisata-bojongrangkas.com/wp-json/wc-bridge/v1/umkm",
+          "https://desa-wisata-bojongrangkas.com/wp-json/wp/v2/produk_umkm?per_page=1",
+          "https://desa-wisata-bojongrangkas.com/wp-json/wp/v2/umkm?per_page=1",
+        ],
+      },
+    ];
+
+    try {
+      const checks = await Promise.all(
+        dynamicCandidates.map(async (candidate) => {
+          for (const url of candidate.endpoints) {
+            try {
+              const res = await fetch(url, { cache: "no-store" });
+              if (res.ok) {
+                const data = await res.json();
+                
+                // 1. Jika data berupa Array
+                if (Array.isArray(data)) {
+                  if (candidate.name === "UMKM") {
+                    const filteredUMKM = data.filter((product: any) => {
+                      const name = (product.name || product.title?.rendered || "").toLowerCase();
+                      const isWisata = name.includes("[wisata]") || name.includes("wisata");
+                      const isBooking = name.includes("[booking]") || name.includes("booking");
+                      const isTiket = name.includes("tiket") || name.includes("ticket");
+                      const isHomestay = name.includes("homestay") || name.includes("[homestay]") || name.includes("penginapan");
+                      return !isWisata && !isBooking && !isTiket && !isHomestay;
+                    });
+                    if (filteredUMKM.length > 0) return { name: candidate.name, href: candidate.href };
+                  } else if (candidate.name === "Paket Wisata" && url.includes("store/v1/products")) {
+                    const filteredPaket = data.filter((product: any) => {
+                      const name = (product.name || product.title?.rendered || "").toLowerCase();
+                      return name.includes("paket") || name.includes("[wisata]") || name.includes("tiket");
+                    });
+                    if (filteredPaket.length > 0) return { name: candidate.name, href: candidate.href };
+                  } else if (data.length > 0) {
+                    return { name: candidate.name, href: candidate.href };
+                  }
+                }
+                
+                // 2. Jika data berupa Object Bridge API
+                if (data && typeof data === "object") {
+                  if (Array.isArray(data.data) && data.data.length > 0) {
+                    return { name: candidate.name, href: candidate.href };
+                  }
+                  if (Array.isArray(data.items) && data.items.length > 0) {
+                    return { name: candidate.name, href: candidate.href };
+                  }
+                  if (data.success && !Array.isArray(data.data)) {
+                    return { name: candidate.name, href: candidate.href };
+                  }
+                }
+              }
+            } catch (e) {
+              // Lanjut ke endpoint berikutnya
+            }
+          }
+          return null;
+        })
+      );
+
+      const validDynamicMenus = checks.filter((item): item is MenuItem => item !== null);
+
+      const footerMenus: MenuItem[] = [
+        { name: "Gallery", href: "/gallery" },
+        { name: "Kontak", href: "/kontak" },
+      ];
+
+      setAvailableMenus([
+        ...baseMenus,
+        ...validDynamicMenus,
+        ...footerMenus,
+      ]);
+    } catch (err) {
+      console.error("Gagal verifikasi modul:", err);
+    }
+  };
+
   useEffect(() => {
-    // Scroll Handler
+    checkAvailableModules();
+
     const handleScroll = () => {
       if (window.scrollY > 50) {
         setIsScrolled(true);
@@ -58,7 +186,6 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [pathname]);
 
-  // FUNGSI LOGOUT AMAN
   const handleLogout = () => {
     localStorage.removeItem("user_token");
     localStorage.removeItem("user_role");
@@ -71,7 +198,7 @@ export default function Navbar() {
     setUserName("");
     setUserAvatar(null);
     setIsMobileMenuOpen(false);
-    
+
     router.push("/login");
     router.refresh();
   };
@@ -79,17 +206,6 @@ export default function Navbar() {
   if (pathname === "/login" || pathname.startsWith("/admin")) {
     return null;
   }
-
-  const menuItems = [
-    { name: "Beranda", href: "/" },
-    { name: "Profil Desa", href: "/profil" },
-    { name: "Wisata", href: "/wisata" },
-    { name: "Homestay", href: "/homestay" },
-    { name: "Paket Wisata", href: "/paket" },
-    { name: "UMKM", href: "/umkm" },
-    { name: "Gallery", href: "/gallery" },
-    { name: "Kontak", href: "/kontak" },
-  ];
 
   return (
     <>
@@ -101,13 +217,12 @@ export default function Navbar() {
         }`}
       >
         <div className="flex items-center justify-between w-full relative">
-          
           {/* LEFT: LOGO */}
           <Link href="/" className="flex items-center shrink-0 transition-transform duration-300 hover:scale-105">
             <div className="w-10 h-10 rounded-full bg-white p-1.5 shadow-sm flex items-center justify-center border border-neutral-200/40 relative">
               <div className="relative w-full h-full">
-               <Image
-                  src="/images/logo.png" 
+                <Image
+                  src="/images/logo.png"
                   alt="Logo Desa"
                   fill
                   priority
@@ -120,7 +235,7 @@ export default function Navbar() {
 
           {/* CENTER: DESKTOP NAV MENU */}
           <nav className="hidden lg:flex items-center gap-1.5 lg:gap-3">
-            {menuItems.map((item) => (
+            {availableMenus.map((item) => (
               <Link
                 key={item.name}
                 href={item.href}
@@ -133,7 +248,7 @@ export default function Navbar() {
 
           {/* RIGHT: SEARCH & AUTH BUTTON */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            <div 
+            <div
               onClick={() => setIsSearchOpen(true)}
               className="hidden sm:flex items-center justify-between w-32 md:w-40 px-4 py-2 bg-slate-900/5 border border-slate-900/10 hover:bg-slate-900/10 rounded-full cursor-pointer transition gap-2 group text-slate-800"
             >
@@ -197,18 +312,15 @@ export default function Navbar() {
               {isMobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
             </button>
           </div>
-
         </div>
       </header>
 
-      {/* MOBILE NAVIGATION DRAWER (DIPERBARUI MENJADI SATU KOLOM KE BAWAH) */}
+      {/* MOBILE NAVIGATION DRAWER */}
       {isMobileMenuOpen && (
         <div className="lg:hidden fixed inset-x-4 top-24 bg-white/95 backdrop-blur-2xl border border-slate-200 rounded-3xl p-6 shadow-2xl space-y-4 z-[998] animate-in fade-in zoom-in-95 duration-200">
-          
-          {/* Status Akun di Mobile Menu */}
           {isLoggedIn ? (
             <div className="flex items-center justify-between p-3.5 bg-emerald-50/70 border border-emerald-100 rounded-2xl">
-              <Link 
+              <Link
                 href={userRole === "admin" ? "/admin" : "/user/dashboard"}
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="flex items-center gap-3"
@@ -243,9 +355,8 @@ export default function Navbar() {
             </Link>
           )}
 
-          {/* Daftar Menu Navigasi Mobile (1 Kolom ke Bawah secara Berurutan) */}
           <div className="flex flex-col space-y-1 pt-2 border-t border-slate-100">
-            {menuItems.map((item) => (
+            {availableMenus.map((item) => (
               <Link
                 key={item.name}
                 href={item.href}

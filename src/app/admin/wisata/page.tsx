@@ -5,17 +5,34 @@ import Link from "next/link";
 import toast, { Toaster } from "react-hot-toast";
 import { 
   ArrowLeft, Plus, MapPin, RefreshCw, Tag, Clock, 
-  Edit3, Trash2, X, Upload, Image as ImageIcon, CircleCheck, CircleX 
+  Edit3, Trash2, X, Upload, Image as ImageIcon, CircleCheck, CircleX,
+  Images, MessageSquare, CreditCard, QrCode
 } from "lucide-react";
 import { WisataCPT } from "@/utils/wp";
 
+interface PaymentMethod {
+  id: number;
+  nama_metode: string;
+  nomor_rekening: string;
+  atas_nama: string;
+  instruksi: string;
+  qr_image: string | null;
+}
+
 export default function AdminWisataPage() {
   const [wisataList, setWisataList] = useState<WisataCPT[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
+  const [isSavingWa, setIsSavingWa] = useState(false);
+
+  // State Nomor WhatsApp Konfirmasi Admin
+  const [adminWhatsApp, setAdminWhatsApp] = useState("6281234567890");
 
   const [editingItem, setEditingItem] = useState<WisataCPT | null>(null);
 
+  // State Form Objek Wisata
   const [title, setTitle] = useState("");
   const [harga, setHarga] = useState("");
   const [durasi, setDurasi] = useState("08:00 - 17:00 WIB");
@@ -25,12 +42,38 @@ export default function AdminWisataPage() {
   const [deskripsi, setDeskripsi] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
 
+  // State Galeri Foto Wisata
+  const [existingGallery, setExistingGallery] = useState<string[]>([]);
+  const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
+
+  // State Form Metode Pembayaran
+  const [namaMetode, setNamaMetode] = useState("");
+  const [nomorRekening, setNomorRekening] = useState("");
+  const [atasNama, setAtasNama] = useState("");
+  const [instruksi, setInstruksi] = useState("");
+  const [qrFile, setQrFile] = useState<File | null>(null);
+
   const fetchWisataData = async () => {
     setLoading(true);
     try {
+      // 1. Fetch Objek Wisata
       const res = await fetch("https://desa-wisata-bojongrangkas.com/wp-json/wp/v2/wisata?_embed", { cache: "no-store" });
       const data = await res.json();
       if (Array.isArray(data)) setWisataList(data);
+
+      // 2. Fetch Metode Pembayaran
+      const resPay = await fetch("https://desa-wisata-bojongrangkas.com/wp-json/wc-bridge/v1/metode-pembayaran", { cache: "no-store" });
+      const dataPay = await resPay.json();
+      if (dataPay.success && Array.isArray(dataPay.metode_pembayaran)) {
+        setPaymentMethods(dataPay.metode_pembayaran);
+      }
+
+      // 3. Fetch Nomor WhatsApp Admin
+      const resWa = await fetch("https://desa-wisata-bojongrangkas.com/wp-json/wc-bridge/v1/admin-whatsapp", { cache: "no-store" });
+      const dataWa = await resWa.json();
+      if (dataWa.success && dataWa.whatsapp_number) {
+        setAdminWhatsApp(dataWa.whatsapp_number);
+      }
     } catch (err) {
       console.error("Gagal load data CPT Wisata:", err);
       toast.error("Gagal memuat data Objek Wisata.");
@@ -42,6 +85,33 @@ export default function AdminWisataPage() {
   useEffect(() => {
     fetchWisataData();
   }, []);
+
+  const handleSaveWhatsApp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingWa(true);
+    const loadingToast = toast.loading("Menyimpan nomor WhatsApp...");
+
+    try {
+      const res = await fetch("https://desa-wisata-bojongrangkas.com/wp-json/wc-bridge/v1/admin-whatsapp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ whatsapp_number: adminWhatsApp }),
+      });
+      const data = await res.json();
+      toast.dismiss(loadingToast);
+
+      if (data.success) {
+        toast.success("Nomor WhatsApp berhasil disimpan!");
+      } else {
+        toast.error(`Gagal menyimpan: ${data.message || "Kesalahan server"}`);
+      }
+    } catch (err) {
+      toast.dismiss(loadingToast);
+      toast.error("Terjadi kesalahan jaringan.");
+    } finally {
+      setIsSavingWa(false);
+    }
+  };
 
   const handleStartEdit = (item: WisataCPT) => {
     setEditingItem(item);
@@ -62,7 +132,6 @@ export default function AdminWisataPage() {
 
     setDurasi(acf.jam_operasional ?? acf.durasi ?? "08:00 - 17:00 WIB");
     
-    // Normalisasi penanganan status buka saat edit
     const statusFromApi = acf.status_buka ?? acf.status_operasional ?? "Buka";
     const cleanStatus = String(statusFromApi).trim();
     setStatusBuka(cleanStatus.toLowerCase() === "tutup" ? "Tutup" : "Buka");
@@ -70,7 +139,17 @@ export default function AdminWisataPage() {
     setKategoriWisata(acf.kategori_wisata ?? "Wisata Alam");
 
     const rawContent = item.content?.rendered || (item as any).excerpt?.rendered || acf.deskripsi || "";
-setDeskripsi(rawContent.replace(/<[^>]+>/g, '').trim());
+    setDeskripsi(rawContent.replace(/<[^>]+>/g, '').trim());
+
+    const galleryFromApi = acf.gallery_images ?? acf.gallery_paket ?? acf.gallery_wisata ?? [];
+    if (Array.isArray(galleryFromApi)) {
+      setExistingGallery(galleryFromApi.filter((g) => typeof g === "string" && g.trim() !== ""));
+    } else if (typeof galleryFromApi === "string" && galleryFromApi.trim() !== "") {
+      setExistingGallery([galleryFromApi]);
+    } else {
+      setExistingGallery([]);
+    }
+    setGalleryFiles([]);
   };
 
   const resetForm = () => {
@@ -83,6 +162,16 @@ setDeskripsi(rawContent.replace(/<[^>]+>/g, '').trim());
     setKategoriWisata("Wisata Alam");
     setDeskripsi("");
     setImageFile(null);
+    setExistingGallery([]);
+    setGalleryFiles([]);
+  };
+
+  const handleRemoveExistingGallery = (urlToRemove: string) => {
+    setExistingGallery((prev) => prev.filter((url) => url !== urlToRemove));
+  };
+
+  const handleRemoveNewGalleryFile = (indexToRemove: number) => {
+    setGalleryFiles((prev) => prev.filter((_, idx) => idx !== indexToRemove));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -107,20 +196,33 @@ setDeskripsi(rawContent.replace(/<[^>]+>/g, '').trim());
         formData.append("image_file", imageFile);
       }
 
+      existingGallery.forEach((url) => {
+        formData.append("existing_gallery[]", url);
+      });
+
+      galleryFiles.forEach((file) => {
+        formData.append("gallery_files[]", file);
+      });
+
       const res = await fetch("https://desa-wisata-bojongrangkas.com/wp-json/wc-bridge/v1/upsert-item", {
         method: "POST",
         body: formData,
       });
 
-      const data = await res.json();
+      const contentType = res.headers.get("content-type");
       toast.dismiss(loadingToast);
 
-      if (res.ok && data.success) {
-        toast.success(editingItem ? "Objek Wisata Berhasil Diperbarui!" : "Objek Wisata Berhasil Ditambahkan!");
-        resetForm();
-        fetchWisataData();
+      if (contentType && contentType.includes("application/json")) {
+        const data = await res.json();
+        if (res.ok && data.success) {
+          toast.success(editingItem ? "Objek Wisata Berhasil Diperbarui!" : "Objek Wisata Berhasil Ditambahkan!");
+          resetForm();
+          fetchWisataData();
+        } else {
+          toast.error(`Gagal menyimpan: ${data.message || "Terjadi kesalahan pada server"}`);
+        }
       } else {
-        toast.error(`Gagal menyimpan: ${data.message || "Terjadi kesalahan pada server"}`);
+        toast.error("Gagal mengunggah foto. Ukuran file terlalu besar atau melampaui batas PHP.");
       }
     } catch (error) {
       console.error("Submit Error:", error);
@@ -180,6 +282,65 @@ setDeskripsi(rawContent.replace(/<[^>]+>/g, '').trim());
     ), { duration: 5000 });
   };
 
+  const handleSubmitPaymentMethod = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmittingPayment(true);
+    const loadingToast = toast.loading("Menyimpan metode pembayaran...");
+
+    try {
+      const formData = new FormData();
+      formData.append("nama_metode", namaMetode);
+      formData.append("nomor_rekening", nomorRekening);
+      formData.append("atas_nama", atasNama);
+      formData.append("instruksi", instruksi);
+      if (qrFile) formData.append("image_file", qrFile);
+
+      const res = await fetch("https://desa-wisata-bojongrangkas.com/wp-json/wc-bridge/v1/metode-pembayaran", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      toast.dismiss(loadingToast);
+
+      if (data.success) {
+        toast.success("Metode pembayaran berhasil ditambahkan!");
+        setNamaMetode("");
+        setNomorRekening("");
+        setAtasNama("");
+        setInstruksi("");
+        setQrFile(null);
+        fetchWisataData();
+      } else {
+        toast.error(`Gagal: ${data.message || "Kesalahan server"}`);
+      }
+    } catch (err) {
+      toast.dismiss(loadingToast);
+      toast.error("Terjadi kesalahan jaringan.");
+    } finally {
+      setIsSubmittingPayment(false);
+    }
+  };
+
+  const handleDeletePaymentMethod = async (id: number) => {
+    const loadingToast = toast.loading("Menghapus metode pembayaran...");
+    try {
+      const res = await fetch(`https://desa-wisata-bojongrangkas.com/wp-json/wc-bridge/v1/metode-pembayaran?id=${id}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      toast.dismiss(loadingToast);
+      if (data.success) {
+        toast.success("Metode pembayaran dihapus!");
+        setPaymentMethods((prev) => prev.filter((m) => m.id !== id));
+      } else {
+        toast.error("Gagal menghapus.");
+      }
+    } catch (err) {
+      toast.dismiss(loadingToast);
+      toast.error("Kesalahan jaringan.");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-100 p-4 sm:p-6 lg:p-8">
       <Toaster position="top-right" reverseOrder={false} />
@@ -191,7 +352,7 @@ setDeskripsi(rawContent.replace(/<[^>]+>/g, '').trim());
           </Link>
           <div>
             <h1 className="text-lg sm:text-xl font-bold text-slate-800">Kelola Objek Wisata</h1>
-            <p className="text-xs text-slate-500">Full CRUD: Tambah, Edit, dan Hapus Objek Wisata</p>
+            <p className="text-xs text-slate-500">Full CRUD: Tambah, Edit, Galeri, Pembayaran, dan WhatsApp</p>
           </div>
         </div>
 
@@ -201,216 +362,419 @@ setDeskripsi(rawContent.replace(/<[^>]+>/g, '').trim());
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-        {/* FORM */}
-        <div className="bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-200/60 h-fit">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
-              {editingItem ? <Edit3 size={18} className="text-amber-600" /> : <Plus size={18} className="text-emerald-600" />}
-              {editingItem ? "Edit Objek Wisata" : "Tambah Objek Wisata"}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 items-start">
+        
+        {/* KOLOM KIRI: WHATSAPP, FORM WISATA, & FORM PEMBAYARAN */}
+        <div className="space-y-6">
+          
+          {/* Form WhatsApp Konfirmasi */}
+          <div className="bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-200/60">
+            <h2 className="text-base font-bold text-slate-800 mb-2 flex items-center gap-2">
+              <MessageSquare size={18} className="text-emerald-600" /> WhatsApp Konfirmasi
             </h2>
-            {editingItem && (
-              <button onClick={resetForm} className="text-slate-400 hover:text-slate-600">
-                <X size={18} />
-              </button>
-            )}
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">Nama Objek Wisata</label>
+            <p className="text-[11px] text-slate-500 mb-3">Nomor tujuan user untuk konfirmasi pemesanan tiket wisata.</p>
+            <form onSubmit={handleSaveWhatsApp} className="space-y-3">
               <input
-                type="text" required value={title} onChange={(e) => setTitle(e.target.value)}
-                placeholder="Curug Saung Bojong"
+                type="text" required value={adminWhatsApp} onChange={(e) => setAdminWhatsApp(e.target.value)}
+                placeholder="6281234567890"
                 className="w-full px-3.5 py-2 text-xs border rounded-xl outline-none focus:ring-2 focus:ring-emerald-500"
               />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">Kategori Wisata</label>
-              <select 
-                value={kategoriWisata} 
-                onChange={(e) => setKategoriWisata(e.target.value)}
-                className="w-full px-3.5 py-2 text-xs border rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 bg-white font-medium"
+              <button
+                type="submit" disabled={isSavingWa}
+                className="w-full py-2 font-bold text-xs text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md transition disabled:opacity-50"
               >
-                <option value="Wisata Alam">🌲 Wisata Alam</option>
-                <option value="Wisata Agro">🌱 Wisata Agro</option>
-                <option value="Wisata Edukasi">✨ Wisata Edukasi</option>
-              </select>
+                {isSavingWa ? "Menyimpan..." : "Simpan Nomor WhatsApp"}
+              </button>
+            </form>
+          </div>
+
+          {/* Form Input Objek Wisata */}
+          <div className="bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-200/60">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
+                {editingItem ? <Edit3 size={18} className="text-amber-600" /> : <Plus size={18} className="text-emerald-600" />}
+                {editingItem ? "Edit Objek Wisata" : "Tambah Objek Wisata"}
+              </h2>
+              {editingItem && (
+                <button onClick={resetForm} className="text-slate-400 hover:text-slate-600">
+                  <X size={18} />
+                </button>
+              )}
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">Upload Foto Utama</label>
-              <div className="border-2 border-dashed border-slate-200 rounded-xl p-3 text-center cursor-pointer hover:bg-slate-50 transition relative">
-                <input
-                  type="file" accept="image/*"
-                  onChange={(e) => setImageFile(e.target.files ? e.target.files[0] : null)}
-                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                />
-                <div className="flex flex-col items-center gap-1 text-slate-500">
-                  <Upload size={18} className="text-emerald-600" />
-                  <span className="text-[11px] font-medium truncate max-w-[200px]">
-                    {imageFile ? imageFile.name : "Klik untuk pilih/ganti foto"}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Tiket Masuk (Rp)</label>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Nama Objek Wisata</label>
                 <input
-                  type="number" required value={harga} onChange={(e) => setHarga(e.target.value)}
-                  placeholder="15000"
+                  type="text" required value={title} onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Curug Saung Bojong"
                   className="w-full px-3.5 py-2 text-xs border rounded-xl outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Status Buka</label>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Kategori Wisata</label>
                 <select 
-                  value={statusBuka} 
-                  onChange={(e) => setStatusBuka(e.target.value)}
-                  className="w-full px-3.5 py-2 text-xs border rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                  value={kategoriWisata} 
+                  onChange={(e) => setKategoriWisata(e.target.value)}
+                  className="w-full px-3.5 py-2 text-xs border rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 bg-white font-medium"
                 >
-                  <option value="Buka">Buka (Hijau)</option>
-                  <option value="Tutup">Tutup (Merah)</option>
+                  <option value="Wisata Alam">🌲 Wisata Alam</option>
+                  <option value="Wisata Agro">🌱 Wisata Agro</option>
+                  <option value="Wisata Edukasi">✨ Wisata Edukasi</option>
                 </select>
               </div>
-            </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">Lokasi / Embed Google Maps (Iframe)</label>
-              <input
-                type="text" required value={lokasi} onChange={(e) => setLokasi(e.target.value)}
-                placeholder="Paste kode iframe maps atau link google maps"
-                className="w-full px-3.5 py-2 text-xs border rounded-xl outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Upload Foto Utama</label>
+                <div className="border-2 border-dashed border-slate-200 rounded-xl p-3 text-center cursor-pointer hover:bg-slate-50 transition relative">
+                  <input
+                    type="file" accept="image/*"
+                    onChange={(e) => setImageFile(e.target.files ? e.target.files[0] : null)}
+                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                  />
+                  <div className="flex flex-col items-center gap-1 text-slate-500">
+                    <Upload size={18} className="text-emerald-600" />
+                    <span className="text-[11px] font-medium truncate max-w-[200px]">
+                      {imageFile ? imageFile.name : "Klik untuk pilih/ganti foto utama"}
+                    </span>
+                  </div>
+                </div>
+              </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">Jam Operasional / Informasi</label>
-              <input
-                type="text" required value={durasi} onChange={(e) => setDurasi(e.target.value)}
-                placeholder="08:00 - 17:00 WIB"
-                className="w-full px-3.5 py-2 text-xs border rounded-xl outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
+              {/* Input Galeri Foto Wisata */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1 flex items-center gap-1">
+                  <Images size={14} className="text-emerald-600" /> Galeri Foto Wisata (Bisa Multiple)
+                </label>
+                
+                <div className="border-2 border-dashed border-slate-200 rounded-xl p-3 text-center cursor-pointer hover:bg-slate-50 transition relative">
+                  <input
+                    type="file" accept="image/*" multiple
+                    onChange={(e) => {
+                      if (e.target.files) {
+                        const newFiles = Array.from(e.target.files);
+                        setGalleryFiles((prev) => [...prev, ...newFiles]);
+                      }
+                    }}
+                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                  />
+                  <div className="flex flex-col items-center gap-1 text-slate-500">
+                    <Upload size={18} className="text-teal-600" />
+                    <span className="text-[11px] font-medium">
+                      Klik untuk tambah foto galeri lainnya
+                    </span>
+                  </div>
+                </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">Deskripsi Objek Wisata</label>
-              <textarea
-                rows={3} required value={deskripsi} onChange={(e) => setDeskripsi(e.target.value)}
-                placeholder="Detail keindahan dan daya tarik wisata..."
-                className="w-full px-3.5 py-2 text-xs border rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
-              />
-            </div>
+                {/* Preview Galeri */}
+                {(existingGallery.length > 0 || galleryFiles.length > 0) && (
+                  <div className="mt-3 space-y-2">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Preview Galeri ({existingGallery.length + galleryFiles.length} Foto)</span>
+                    <div className="grid grid-cols-4 gap-2 max-h-36 overflow-y-auto p-1 bg-slate-50 rounded-xl border border-slate-100">
+                      {existingGallery.map((url, idx) => (
+                        <div key={`existing-${idx}`} className="relative group aspect-square rounded-lg overflow-hidden border border-slate-200">
+                          <img src={url} alt={`Galeri ${idx}`} className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveExistingGallery(url)}
+                            className="absolute top-0.5 right-0.5 bg-red-600 text-white p-0.5 rounded-full opacity-80 hover:opacity-100 transition shadow"
+                          >
+                            <X size={10} />
+                          </button>
+                        </div>
+                      ))}
 
-            <button
-              type="submit" disabled={isSubmitting}
-              className={`w-full py-2.5 font-bold text-xs text-white rounded-xl shadow-md transition disabled:opacity-50 ${
-                editingItem ? "bg-amber-600 hover:bg-amber-700" : "bg-emerald-600 hover:bg-emerald-700"
-              }`}
-            >
-              {isSubmitting ? "Synchronizing..." : editingItem ? "Update Objek Wisata" : "+ Simpan Objek Wisata"}
-            </button>
-          </form>
+                      {galleryFiles.map((file, idx) => (
+                        <div key={`new-${idx}`} className="relative group aspect-square rounded-lg overflow-hidden border border-emerald-300 bg-emerald-50">
+                          <img src={URL.createObjectURL(file)} alt={`New Galeri ${idx}`} className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveNewGalleryFile(idx)}
+                            className="absolute top-0.5 right-0.5 bg-red-600 text-white p-0.5 rounded-full opacity-80 hover:opacity-100 transition shadow"
+                          >
+                            <X size={10} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Tiket Masuk (Rp)</label>
+                  <input
+                    type="number" required value={harga} onChange={(e) => setHarga(e.target.value)}
+                    placeholder="15000"
+                    className="w-full px-3.5 py-2 text-xs border rounded-xl outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Status Buka</label>
+                  <select 
+                    value={statusBuka} 
+                    onChange={(e) => setStatusBuka(e.target.value)}
+                    className="w-full px-3.5 py-2 text-xs border rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                  >
+                    <option value="Buka">Buka (Hijau)</option>
+                    <option value="Tutup">Tutup (Merah)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Lokasi / Embed Google Maps (Iframe)</label>
+                <input
+                  type="text" required value={lokasi} onChange={(e) => setLokasi(e.target.value)}
+                  placeholder="Paste kode iframe maps atau link google maps"
+                  className="w-full px-3.5 py-2 text-xs border rounded-xl outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Jam Operasional / Informasi</label>
+                <input
+                  type="text" required value={durasi} onChange={(e) => setDurasi(e.target.value)}
+                  placeholder="08:00 - 17:00 WIB"
+                  className="w-full px-3.5 py-2 text-xs border rounded-xl outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Deskripsi Objek Wisata</label>
+                <textarea
+                  rows={3} required value={deskripsi} onChange={(e) => setDeskripsi(e.target.value)}
+                  placeholder="Detail keindahan dan daya tarik wisata..."
+                  className="w-full px-3.5 py-2 text-xs border rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
+                />
+              </div>
+
+              <button
+                type="submit" disabled={isSubmitting}
+                className={`w-full py-2.5 font-bold text-xs text-white rounded-xl shadow-md transition disabled:opacity-50 ${
+                  editingItem ? "bg-amber-600 hover:bg-amber-700" : "bg-emerald-600 hover:bg-emerald-700"
+                }`}
+              >
+                {isSubmitting ? "Synchronizing..." : editingItem ? "Update Objek Wisata" : "+ Simpan Objek Wisata"}
+              </button>
+            </form>
+          </div>
+
+          {/* Form Tambah Metode Pembayaran */}
+          <div className="bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-200/60">
+            <h2 className="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
+              <CreditCard size={18} className="text-blue-600" /> Tambah Metode Pembayaran
+            </h2>
+            <form onSubmit={handleSubmitPaymentMethod} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Nama Metode / Bank</label>
+                <input
+                  type="text" required value={namaMetode} onChange={(e) => setNamaMetode(e.target.value)}
+                  placeholder="Contoh: SeaBank / QRIS"
+                  className="w-full px-3.5 py-2 text-xs border rounded-xl outline-none"
+                />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">No. Rekening / HP</label>
+                  <input
+                    type="text" value={nomorRekening} onChange={(e) => setNomorRekening(e.target.value)}
+                    placeholder="901976099"
+                    className="w-full px-3.5 py-2 text-xs border rounded-xl outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Atas Nama</label>
+                  <input
+                    type="text" value={atasNama} onChange={(e) => setAtasNama(e.target.value)}
+                    placeholder="BUMDes"
+                    className="w-full px-3.5 py-2 text-xs border rounded-xl outline-none"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Upload QR / Logo (Opsional)</label>
+                <div className="border-2 border-dashed border-slate-200 rounded-xl p-3 text-center cursor-pointer hover:bg-slate-50 relative">
+                  <input
+                    type="file" accept="image/*"
+                    onChange={(e) => setQrFile(e.target.files ? e.target.files[0] : null)}
+                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                  />
+                  <div className="flex items-center justify-center gap-2 text-slate-500">
+                    <QrCode size={16} className="text-blue-600" />
+                    <span className="text-xs truncate max-w-[200px]">{qrFile ? qrFile.name : "Pilih gambar QR"}</span>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Instruksi Pembayaran</label>
+                <textarea
+                  rows={2} value={instruksi} onChange={(e) => setInstruksi(e.target.value)}
+                  placeholder="Buka aplikasi..."
+                  className="w-full px-3.5 py-2 text-xs border rounded-xl outline-none resize-none"
+                />
+              </div>
+              <button
+                type="submit" disabled={isSubmittingPayment}
+                className="w-full py-2.5 font-bold text-xs text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-md transition disabled:opacity-50"
+              >
+                {isSubmittingPayment ? "Menyimpan..." : "+ Tambah Metode Pembayaran"}
+              </button>
+            </form>
+          </div>
+
         </div>
 
-        {/* LIST */}
-        <div className="lg:col-span-2 bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden">
-          <h2 className="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
-            <MapPin size={18} className="text-emerald-600" /> Daftar Objek Wisata ({wisataList.length})
-          </h2>
+        {/* KOLOM KANAN: DAFTAR OBJEK WISATA & METODE PEMBAYARAN */}
+        <div className="lg:col-span-2 space-y-6">
+          
+          {/* Daftar Objek Wisata */}
+          <div className="bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden">
+            <h2 className="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
+              <MapPin size={18} className="text-emerald-600" /> Daftar Objek Wisata ({wisataList.length})
+            </h2>
 
-          {loading ? (
-            <div className="py-12 text-center text-xs text-slate-400">Loading data...</div>
-          ) : wisataList.length === 0 ? (
-            <div className="py-12 text-center text-xs text-slate-400">Belum ada Objek Wisata.</div>
-          ) : (
-            <div className="space-y-3">
-              {wisataList.map((item) => {
-                const acf = (item as any).acf || {};
-                
-                const rawHarga = acf.harga ?? acf.harga_tiket ?? (item as any).harga ?? "0";
-                const itemHarga = !isNaN(Number(rawHarga)) ? Number(rawHarga) : 0;
+            {loading ? (
+              <div className="py-12 text-center text-xs text-slate-400">Loading data...</div>
+            ) : wisataList.length === 0 ? (
+              <div className="py-12 text-center text-xs text-slate-400">Belum ada Objek Wisata.</div>
+            ) : (
+              <div className="space-y-3">
+                {wisataList.map((item) => {
+                  const acf = (item as any).acf || {};
+                  
+                  const rawHarga = acf.harga ?? acf.harga_tiket ?? (item as any).harga ?? "0";
+                  const itemHarga = !isNaN(Number(rawHarga)) ? Number(rawHarga) : 0;
 
-                const itemDurasi = acf.jam_operasional ?? acf.durasi ?? "08:00 - 17:00 WIB";
-                const itemStatus = acf.status_buka ?? acf.status_operasional ?? (item as any).status_buka ?? "Buka";
-                const itemKategori = acf.kategori_wisata ?? "Wisata Alam";
+                  const itemDurasi = acf.jam_operasional ?? acf.durasi ?? "08:00 - 17:00 WIB";
+                  const itemStatus = acf.status_buka ?? acf.status_operasional ?? (item as any).status_buka ?? "Buka";
+                  const itemKategori = acf.kategori_wisata ?? "Wisata Alam";
 
-                // LOGIKA Fleksibel: Menganggap status Buka jika nilainya buka/open/1/true atau jika belum diisi data awal
-                const rawStatusStr = String(itemStatus).trim().toLowerCase();
-                const isItemOpen = rawStatusStr === "buka" || rawStatusStr === "open" || rawStatusStr === "1" || rawStatusStr === "true" || rawStatusStr === "";
+                  const itemGallery = acf.gallery_images ?? acf.gallery_paket ?? acf.gallery_wisata ?? [];
+                  const galleryCount = Array.isArray(itemGallery) ? itemGallery.length : 0;
 
-                return (
-                  <div key={item.id} className="p-3.5 sm:p-4 rounded-xl border border-slate-100 hover:border-slate-200 transition bg-slate-50/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 w-full">
-                    <div className="flex items-start sm:items-center gap-3 w-full sm:w-auto min-w-0 flex-1">
-                      <div className="w-12 h-12 rounded-lg bg-slate-200 overflow-hidden relative shrink-0">
-                        {item._embedded?.["wp:featuredmedia"]?.[0]?.source_url ? (
-                          <img
-                            src={item._embedded["wp:featuredmedia"][0].source_url}
-                            alt="Thumbnail"
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-slate-400">
-                            <ImageIcon size={18} />
+                  const rawStatusStr = String(itemStatus).trim().toLowerCase();
+                  const isItemOpen = rawStatusStr === "buka" || rawStatusStr === "open" || rawStatusStr === "1" || rawStatusStr === "true" || rawStatusStr === "";
+
+                  return (
+                    <div key={item.id} className="p-3.5 sm:p-4 rounded-xl border border-slate-100 hover:border-slate-200 transition bg-slate-50/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 w-full">
+                      <div className="flex items-start sm:items-center gap-3 w-full sm:w-auto min-w-0 flex-1">
+                        <div className="w-12 h-12 rounded-lg bg-slate-200 overflow-hidden relative shrink-0">
+                          {item._embedded?.["wp:featuredmedia"]?.[0]?.source_url ? (
+                            <img
+                              src={item._embedded["wp:featuredmedia"][0].source_url}
+                              alt="Thumbnail"
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-slate-400">
+                              <ImageIcon size={18} />
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="font-bold text-sm text-slate-800 break-words">{item.title?.rendered}</h3>
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
+                              isItemOpen ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"
+                            }`}>
+                              {isItemOpen ? <CircleCheck size={10} /> : <CircleX size={10} />}
+                              {isItemOpen ? "Buka" : "Tutup"}
+                            </span>
                           </div>
-                        )}
+
+                          <div className="flex flex-wrap items-center gap-2 mt-1.5 text-xs text-slate-500">
+                            <span className="font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">
+                              {itemKategori}
+                            </span>
+                            <span>•</span>
+                            <span className="flex items-center gap-1 font-bold text-neutral-700">
+                              <Tag size={12} /> Rp {itemHarga.toLocaleString("id-ID")}
+                            </span>
+                            <span>•</span>
+                            <span className="flex items-center gap-1">
+                              <Clock size={12} /> {itemDurasi}
+                            </span>
+                            {galleryCount > 0 && (
+                              <>
+                                <span>•</span>
+                                <span className="flex items-center gap-1 text-teal-600 font-semibold bg-teal-50 px-2 py-0.5 rounded-md">
+                                  <Images size={11} /> {galleryCount} Foto
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        </div>
                       </div>
 
-                      <div className="flex-1 min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="font-bold text-sm text-slate-800 break-words">{item.title?.rendered}</h3>
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
-                            isItemOpen ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"
-                          }`}>
-                            {isItemOpen ? <CircleCheck size={10} /> : <CircleX size={10} />}
-                            {isItemOpen ? "Buka" : "Tutup"}
-                          </span>
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-2 mt-1.5 text-xs text-slate-500">
-                          <span className="font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">
-                            {itemKategori}
-                          </span>
-                          <span>•</span>
-                          <span className="flex items-center gap-1 font-bold text-neutral-700">
-                            <Tag size={12} /> Rp {itemHarga.toLocaleString("id-ID")}
-                          </span>
-                          <span>•</span>
-                          <span className="flex items-center gap-1">
-                            <Clock size={12} /> {itemDurasi}
-                          </span>
-                        </div>
+                      <div className="flex items-center gap-2 self-end sm:self-center shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-200/60 w-full sm:w-auto justify-end">
+                        <button
+                          onClick={() => handleStartEdit(item)}
+                          className="p-2 bg-amber-50 text-amber-600 hover:bg-amber-100 rounded-xl transition flex items-center gap-1.5 text-xs font-semibold px-3 sm:px-2"
+                        >
+                          <Edit3 size={15} />
+                          <span className="sm:hidden">Edit</span>
+                        </button>
+                        <button
+                          onClick={() => handleDelete(item.id)}
+                          className="p-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl transition flex items-center gap-1.5 text-xs font-semibold px-3 sm:px-2"
+                        >
+                          <Trash2 size={15} />
+                          <span className="sm:hidden">Hapus</span>
+                        </button>
                       </div>
                     </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
 
-                    <div className="flex items-center gap-2 self-end sm:self-center shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-200/60 w-full sm:w-auto justify-end">
+          {/* Daftar Metode Pembayaran Aktif */}
+          <div className="bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-200/60">
+            <h2 className="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
+              <CreditCard size={18} className="text-blue-600" /> Metode Pembayaran Aktif ({paymentMethods.length})
+            </h2>
+
+            {paymentMethods.length === 0 ? (
+              <div className="py-8 text-center text-xs text-slate-400">Belum ada metode pembayaran.</div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {paymentMethods.map((method) => (
+                  <div key={method.id} className="p-4 rounded-xl border border-slate-200/80 bg-slate-50/60 flex flex-col justify-between gap-3">
+                    <div className="flex items-start gap-3">
+                      {method.qr_image && (
+                        <div className="w-16 h-16 rounded-lg bg-white border p-1 shrink-0 overflow-hidden">
+                          <img src={method.qr_image} alt="QR" className="w-full h-full object-contain" />
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-bold text-sm text-slate-800 truncate">{method.nama_metode}</h3>
+                        {method.nomor_rekening && <p className="text-xs font-medium text-slate-600 mt-0.5">No: {method.nomor_rekening}</p>}
+                        {method.atas_nama && <p className="text-[11px] text-slate-500">A/N: {method.atas_nama}</p>}
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-200/60">
+                      <span className="text-[10px] text-slate-400 truncate max-w-[180px]">{method.instruksi}</span>
                       <button
-                        onClick={() => handleStartEdit(item)}
-                        className="p-2 bg-amber-50 text-amber-600 hover:bg-amber-100 rounded-xl transition flex items-center gap-1.5 text-xs font-semibold px-3 sm:px-2"
-                        title="Edit Item"
+                        onClick={() => handleDeletePaymentMethod(method.id)}
+                        className="p-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition text-[11px] font-semibold flex items-center gap-1"
                       >
-                        <Edit3 size={15} />
-                        <span className="sm:hidden">Edit</span>
-                      </button>
-                      <button
-                        onClick={() => handleDelete(item.id)}
-                        className="p-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl transition flex items-center gap-1.5 text-xs font-semibold px-3 sm:px-2"
-                        title="Hapus Item"
-                      >
-                        <Trash2 size={15} />
-                        <span className="sm:hidden">Hapus</span>
+                        <Trash2 size={13} /> Hapus
                       </button>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
+          </div>
+
         </div>
+
       </div>
     </div>
   );

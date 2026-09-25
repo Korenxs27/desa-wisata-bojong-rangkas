@@ -15,7 +15,6 @@ import {
   LogOut, 
   ExternalLink,
   RefreshCw,
-  TrendingUp,
   CreditCard,
   CheckCircle,
   Clock,
@@ -27,7 +26,8 @@ import {
   CheckCheck,
   Search,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Calendar
 } from "lucide-react";
 
 export default function AdminDashboard() {
@@ -213,6 +213,23 @@ export default function AdminDashboard() {
 
   const displayedMessages = showAllMessages ? filteredMessages : filteredMessages.slice(0, 5);
   const displayedOrders = showAllOrders ? orders : orders.slice(0, 5);
+
+  // Helper Formatter Tanggal
+  const formatTanggalIndo = (dateString: string) => {
+    if (!dateString || dateString === "-") return "-";
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return dateString;
+      return date.toLocaleDateString("id-ID", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric"
+      });
+    } catch {
+      return dateString;
+    }
+  };
 
   return (
     <div className={`min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/20 to-slate-100 flex flex-col md:flex-row text-slate-800 font-sans relative ${isMobileSidebarOpen ? 'overflow-hidden h-screen' : ''}`}>
@@ -428,7 +445,7 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* 🧾 MONITORING ORDERS REAL-TIME (DENGAN BATAS 5 & LIHAT SEMUA) */}
+        {/* 🧾 MONITORING ORDERS REAL-TIME */}
         <div className="bg-white/80 backdrop-blur-md p-5 sm:p-6 rounded-3xl shadow-sm border border-slate-200/60">
           <div className="flex justify-between items-center mb-6">
             <div>
@@ -438,7 +455,6 @@ export default function AdminDashboard() {
             <span className="text-[10px] sm:text-xs font-semibold text-emerald-600 bg-emerald-50 px-2.5 sm:px-3 py-1.5 rounded-xl">
               Total: {orders.length} Orders
             </span>
-
           </div>
 
           <div className="overflow-x-auto">
@@ -496,7 +512,7 @@ export default function AdminDashboard() {
             </table>
           </div>
 
-          {/* TOMBOL LIHAT SEMUA / SEMBUNYIKAN UNTUK TABEL ORDERS */}
+          {/* TOMBOL LIHAT SEMUA UNTUK TABEL ORDERS */}
           {orders.length > 5 && (
             <div className="pt-4 text-center border-t border-slate-100 mt-2">
               <button
@@ -513,7 +529,7 @@ export default function AdminDashboard() {
           )}
         </div>
 
-        {/* 💬 KOTAK MASUK PESAN & ASPIRASI (DENGAN BATAS 5 & FADE TOGGLE) */}
+        {/* 💬 KOTAK MASUK PESAN & ASPIRASI */}
         <div className="bg-white/80 backdrop-blur-md p-5 sm:p-6 rounded-3xl shadow-sm border border-slate-200/60 space-y-4">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div className="flex items-center gap-3">
@@ -569,7 +585,7 @@ export default function AdminDashboard() {
             </table>
           </div>
 
-          {/* TOMBOL LIHAT SEMUA / SEMBUNYIKAN UNTUK TABEL PESAN */}
+          {/* TOMBOL LIHAT SEMUA UNTUK TABEL PESAN */}
           {filteredMessages.length > 5 && (
             <div className="pt-4 text-center border-t border-slate-100 mt-2">
               <button
@@ -648,27 +664,31 @@ export default function AdminDashboard() {
 
                   <div>
                     <span className="text-slate-400 block text-[10px]">Nama Paket / Produk</span>
-                    <strong className="text-slate-800">{selectedOrder.line_items_name || "-"}</strong>
+                    <strong className="text-slate-800">{selectedOrder.line_items_name || selectedOrder.nama_paket || "-"}</strong>
                   </div>
 
-                  {/* Penyesuaian jadwal berdasarkan jenis pesanan */}
+                  {/* TAMPILAN TANGGAL KUNJUNGAN / RESERVASI */}
                   {selectedOrder.jenis_pesanan === 'Homestay' ? (
                     <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200/60">
                       <div>
                         <span className="text-slate-400 block text-[10px]">Tanggal Check-in</span>
-                        <strong className="text-emerald-700">{selectedOrder.tanggal_mulai || "-"}</strong>
+                        <strong className="text-emerald-700">{formatTanggalIndo(selectedOrder.tanggal_mulai)}</strong>
                       </div>
                       <div>
                         <span className="text-slate-400 block text-[10px]">Tanggal Check-out</span>
-                        <strong className="text-emerald-700">{selectedOrder.tanggal_selesai || "-"}</strong>
+                        <strong className="text-emerald-700">{formatTanggalIndo(selectedOrder.tanggal_selesai)}</strong>
                       </div>
                     </div>
-                  ) : selectedOrder.jenis_pesanan === 'Paket Wisata' || selectedOrder.jenis_pesanan === 'Paket' ? (
-                    <div className="pt-2 border-t border-slate-200/60">
-                      <span className="text-slate-400 block text-[10px]">Jadwal Kunjungan</span>
-                      <strong className="text-emerald-700">{selectedOrder.tanggal_mulai || selectedOrder.tanggal_reservasi || "-"}</strong>
+                  ) : (
+                    <div className="p-3 bg-emerald-50/80 rounded-xl border border-emerald-100/80 mt-2 space-y-0.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 flex items-center gap-1">
+                        <Calendar size={12} /> Jadwal Rencana Kunjungan
+                      </span>
+                      <strong className="text-emerald-900 text-sm font-extrabold block">
+                        {formatTanggalIndo(selectedOrder.tgl_kunjungan || selectedOrder.tanggal_mulai)}
+                      </strong>
                     </div>
-                  ) : null}
+                  )}
 
                   <div>
                     <span className="text-slate-400 block text-[10px] mt-1">Waktu Pembuatan Order</span>
@@ -712,7 +732,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* Tombol Konfirmasi Admin (Muncul selama status belum completed atau processing) */}
+              {/* Tombol Konfirmasi Admin */}
               {selectedOrder.status !== "completed" && selectedOrder.status !== "processing" && (
                 <button 
                   onClick={() => handleMarkAsPaid(selectedOrder.id)}
