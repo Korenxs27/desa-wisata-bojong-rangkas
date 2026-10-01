@@ -80,71 +80,89 @@ export default function AdminDashboard() {
     setLoading(true);
     setRefreshing(true);
 
-    // Dynamic Headers untuk Mencegah Cache
-    const noCacheHeaders = {
-      "Pragma": "no-cache",
-      "Cache-Control": "no-cache, no-store, must-revalidate",
-    };
-
     try {
-      const [catRes, usersRes] = await Promise.all([
-        fetch(`${wpUrl}/wp/v2/categories?per_page=1`, { cache: "no-store", headers: noCacheHeaders }),
-        fetch(`${wpUrl}/wp/v2/users/count`, { cache: "no-store", headers: noCacheHeaders }),
-      ]);
+      // 1. Ambil Kategori WP secara aman
+      let catTotal = 0;
+      try {
+        const catRes = await fetch(`${wpUrl}/wp/v2/categories?per_page=1`);
+        if (catRes.ok) {
+          catTotal = parseInt(catRes.headers.get("X-WP-Total") || "0", 10);
+        }
+      } catch (e) {
+        console.warn("Gagal mengambil kategori:", e);
+      }
 
-      const userCountJson = await usersRes.json();
-      const realTotalUsers = typeof userCountJson === 'number' ? userCountJson : 0;
+      // 2. Ambil User Count secara aman
+      let userCount = 0;
+      try {
+        const usersRes = await fetch(`${wpUrl}/wp/v2/users/count`);
+        if (usersRes.ok) {
+          const userJson = await usersRes.json();
+          userCount = typeof userJson === "number" ? userJson : 0;
+        }
+      } catch (e) {
+        console.warn("Gagal mengambil jumlah user:", e);
+      }
 
+      // 3. Ambil Galeri Desa
       let totalGalleryCount = 0;
       try {
-        const galleryRes = await fetch(`${wpUrl}/wc-bridge/v1/gallery-items`, { cache: "no-store", headers: noCacheHeaders });
-        const galleryJson = await galleryRes.json();
-        if (galleryJson.success && Array.isArray(galleryJson.gallery)) {
-          totalGalleryCount = galleryJson.gallery.length;
+        const galleryRes = await fetch(`${wpUrl}/wc-bridge/v1/gallery-items`);
+        if (galleryRes.ok) {
+          const galleryJson = await galleryRes.json();
+          if (galleryJson.success && Array.isArray(galleryJson.gallery)) {
+            totalGalleryCount = galleryJson.gallery.length;
+          }
         }
       } catch (err) {
         console.error("Gagal menghitung galeri:", err);
       }
 
-      let ordersData = [];
+      // 4. Ambil Orders WooCommerce via WC Bridge
+      let ordersData: any[] = [];
       let realRevenue = 0;
       let realTotalOrders = 0;
 
       try {
-        // PERBAIKAN: Memanggil endpoint orders tanpa cache agar tersinkronisasi 100% dengan WordPress
-        const orderRes = await fetch(`${wpUrl}/wc-bridge/v1/get-orders`, { cache: "no-store", headers: noCacheHeaders });
-        const orderJson = await orderRes.json();
-        if (orderJson.success && Array.isArray(orderJson.orders)) {
-          // Hanya ambil pesanan yang bukan berstatus trash / cancelled / deleted
-          ordersData = orderJson.orders.filter((ord: any) => 
-            ord.status !== 'trash' && ord.status !== 'cancelled' && ord.status !== 'failed'
-          );
-          realTotalOrders = ordersData.length;
-          
-          // Hitung total pendapatan dari order lunas/diproses (completed/processing/on-hold)
-          realRevenue = ordersData
-            .filter((o: any) => o.status === 'completed' || o.status === 'processing' || o.status === 'on-hold')
-            .reduce((sum: number, o: any) => sum + Number(o.total || 0), 0);
+        const orderRes = await fetch(`${wpUrl}/wc-bridge/v1/get-orders`);
+        if (orderRes.ok) {
+          const orderJson = await orderRes.json();
+          if (orderJson.success && Array.isArray(orderJson.orders)) {
+            // Filter pesanan yang bukan berstatus trash / cancelled / failed
+            ordersData = orderJson.orders.filter((ord: any) => 
+              ord.status !== 'trash' && ord.status !== 'cancelled' && ord.status !== 'failed'
+            );
+            realTotalOrders = ordersData.length;
+            
+            // FIX: Hitung pendapatan HANYA dari pesanan yang sudah LUNAS (completed / processing)
+            realRevenue = ordersData
+              .filter((o: any) => o.status === 'completed' || o.status === 'processing')
+              .reduce((sum: number, o: any) => sum + Number(o.total || 0), 0);
+          }
         }
       } catch (err) {
         console.error("Gagal mengambil orders:", err);
       }
 
-      let messagesData = [];
+      // 5. Ambil Pesan Aspirasi
+      let messagesData: any[] = [];
       try {
-        const msgRes = await fetch(`${wpUrl}/wc-bridge/v1/get-messages`, { cache: "no-store", headers: noCacheHeaders });
-        const msgJson = await msgRes.json();
-        if (msgJson.success && Array.isArray(msgJson.messages)) {
-          messagesData = msgJson.messages;
+        const msgRes = await fetch(`${wpUrl}/wc-bridge/v1/get-messages`);
+        if (msgRes.ok) {
+          const msgJson = await msgRes.json();
+          if (msgJson.success && Array.isArray(msgJson.messages)) {
+            messagesData = msgJson.messages;
+          }
         }
       } catch (err) {
         console.error("Gagal mengambil pesan aspirasi:", err);
       }
 
+      // Update State Keseluruhan
       setStats({
         totalGallery: totalGalleryCount,
-        categories: parseInt(catRes.headers.get("X-WP-Total") || "0", 10),
-        users: realTotalUsers > 0 ? realTotalUsers : parseInt(usersRes.headers.get("X-WP-Total") || "0", 10),
+        categories: catTotal,
+        users: userCount,
         totalOrders: realTotalOrders,
         revenue: realRevenue,
       });
@@ -185,7 +203,7 @@ export default function AdminDashboard() {
           iconTheme: { primary: '#34d399', secondary: '#065f46' }
         });
         setSelectedOrder(null);
-        fetchAllAdminData(); // Refresh data otomatis setelah konfirmasi
+        fetchAllAdminData(); // Auto Re-fetch data agar total pendapatan langsung bertambah secara real-time
       } else {
         toast.error(`Gagal: ${data.message || "Kesalahan server WordPress"}`, {
           style: { borderRadius: '16px', fontSize: '12px' }
@@ -210,7 +228,7 @@ export default function AdminDashboard() {
     router.refresh();
   };
 
-  // Filter & Batasi Pesan (Maksimal 5 jika belum klik "Lihat Semua")
+  // Filter & Batasi Pesan
   const filteredMessages = messages.filter((msg) => {
     const query = messageSearch.toLowerCase();
     const nameMatch = msg.nama?.toLowerCase().includes(query);
@@ -392,7 +410,7 @@ export default function AdminDashboard() {
           <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-end">
             <button 
               onClick={fetchAllAdminData} 
-              className="p-2.5 sm:p-3 text-slate-600 bg-white hover:bg-slate-50 border border-slate-200/80 rounded-2xl shadow-sm transition flex items-center gap-2 text-xs font-semibold"
+              className="p-2.5 sm:p-3 text-slate-600 bg-white hover:bg-slate-50 border border-slate-200/80 rounded-2xl shadow-sm transition flex items-center gap-2 text-xs font-semibold cursor-pointer"
               title="Refresh Data"
             >
               <RefreshCw size={15} className={refreshing ? "animate-spin text-emerald-600" : ""} />
