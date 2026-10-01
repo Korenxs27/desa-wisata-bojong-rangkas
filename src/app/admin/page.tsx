@@ -59,8 +59,7 @@ export default function AdminDashboard() {
   const [orders, setOrders] = useState<any[]>([]);
   const [messages, setMessages] = useState<any[]>([]);
 
-  const wpUrl = process.env.NEXT_PUBLIC_WORDPRESS_URL || "https://desa-wisata-bojongrangkas.com/wp-json";
-
+  const wpUrl = "https://desa-wisata-bojongrangkas.com/wp-json";
   useEffect(() => {
     const adminToken = localStorage.getItem("admin_token");
     const name = localStorage.getItem("admin_name");
