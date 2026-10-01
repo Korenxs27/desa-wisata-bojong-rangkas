@@ -134,7 +134,7 @@ export default function AdminDashboard() {
             );
             realTotalOrders = ordersData.length;
             
-            // FIX: Hitung pendapatan HANYA dari pesanan yang sudah LUNAS (completed / processing)
+            // FIX: Hitung HANYA dari order LUNAS (completed / processing). Mencegah nominal pending masuk.
             realRevenue = ordersData
               .filter((o: any) => o.status === 'completed' || o.status === 'processing')
               .reduce((sum: number, o: any) => sum + Number(o.total || 0), 0);
@@ -203,7 +203,7 @@ export default function AdminDashboard() {
           iconTheme: { primary: '#34d399', secondary: '#065f46' }
         });
         setSelectedOrder(null);
-        fetchAllAdminData(); // Auto Re-fetch data agar total pendapatan langsung bertambah secara real-time
+        fetchAllAdminData(); // Refresh data otomatis agar total pendapatan langsung bertambah secara real-time
       } else {
         toast.error(`Gagal: ${data.message || "Kesalahan server WordPress"}`, {
           style: { borderRadius: '16px', fontSize: '12px' }
