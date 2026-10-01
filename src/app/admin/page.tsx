@@ -79,10 +79,17 @@ export default function AdminDashboard() {
   const fetchAllAdminData = async () => {
     setLoading(true);
     setRefreshing(true);
+
+    // Dynamic Headers untuk Mencegah Cache
+    const noCacheHeaders = {
+      "Pragma": "no-cache",
+      "Cache-Control": "no-cache, no-store, must-revalidate",
+    };
+
     try {
       const [catRes, usersRes] = await Promise.all([
-        fetch(`${wpUrl}/wp/v2/categories?per_page=1`),
-        fetch(`${wpUrl}/wp/v2/users/count`),
+        fetch(`${wpUrl}/wp/v2/categories?per_page=1`, { cache: "no-store", headers: noCacheHeaders }),
+        fetch(`${wpUrl}/wp/v2/users/count`, { cache: "no-store", headers: noCacheHeaders }),
       ]);
 
       const userCountJson = await usersRes.json();
@@ -90,7 +97,7 @@ export default function AdminDashboard() {
 
       let totalGalleryCount = 0;
       try {
-        const galleryRes = await fetch(`${wpUrl}/wc-bridge/v1/gallery-items`);
+        const galleryRes = await fetch(`${wpUrl}/wc-bridge/v1/gallery-items`, { cache: "no-store", headers: noCacheHeaders });
         const galleryJson = await galleryRes.json();
         if (galleryJson.success && Array.isArray(galleryJson.gallery)) {
           totalGalleryCount = galleryJson.gallery.length;
@@ -104,7 +111,8 @@ export default function AdminDashboard() {
       let realTotalOrders = 0;
 
       try {
-        const orderRes = await fetch(`${wpUrl}/wc-bridge/v1/get-orders`);
+        // PERBAIKAN: Memanggil endpoint orders tanpa cache agar tersinkronisasi 100% dengan WordPress
+        const orderRes = await fetch(`${wpUrl}/wc-bridge/v1/get-orders`, { cache: "no-store", headers: noCacheHeaders });
         const orderJson = await orderRes.json();
         if (orderJson.success && Array.isArray(orderJson.orders)) {
           // Hanya ambil pesanan yang bukan berstatus trash / cancelled / deleted
@@ -113,9 +121,9 @@ export default function AdminDashboard() {
           );
           realTotalOrders = ordersData.length;
           
-          // Hitung ulang total pendapatan hanya dari order yang valid (processing/completed)
+          // Hitung total pendapatan dari order lunas/diproses (completed/processing/on-hold)
           realRevenue = ordersData
-            .filter((o: any) => o.status === 'completed' || o.status === 'processing')
+            .filter((o: any) => o.status === 'completed' || o.status === 'processing' || o.status === 'on-hold')
             .reduce((sum: number, o: any) => sum + Number(o.total || 0), 0);
         }
       } catch (err) {
@@ -124,7 +132,7 @@ export default function AdminDashboard() {
 
       let messagesData = [];
       try {
-        const msgRes = await fetch(`${wpUrl}/wc-bridge/v1/get-messages`);
+        const msgRes = await fetch(`${wpUrl}/wc-bridge/v1/get-messages`, { cache: "no-store", headers: noCacheHeaders });
         const msgJson = await msgRes.json();
         if (msgJson.success && Array.isArray(msgJson.messages)) {
           messagesData = msgJson.messages;
@@ -177,7 +185,7 @@ export default function AdminDashboard() {
           iconTheme: { primary: '#34d399', secondary: '#065f46' }
         });
         setSelectedOrder(null);
-        fetchAllAdminData(); // Refresh data otomatis
+        fetchAllAdminData(); // Refresh data otomatis setelah konfirmasi
       } else {
         toast.error(`Gagal: ${data.message || "Kesalahan server WordPress"}`, {
           style: { borderRadius: '16px', fontSize: '12px' }
