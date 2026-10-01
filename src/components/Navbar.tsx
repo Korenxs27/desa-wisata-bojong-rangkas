@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { Search, User, LogIn, LogOut, Menu, X } from "lucide-react";
+import { Search, User, LogIn, LogOut, Menu, X, ShoppingBag } from "lucide-react";
 import SearchModal from "./SearchModal";
 
 interface MenuItem {
@@ -19,6 +19,9 @@ export default function Navbar() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  // State Jumlah Item di Keranjang Belanja
+  const [cartCount, setCartCount] = useState<number>(0);
+
   // State menu dinamis (Awal diisi menu dasar)
   const [availableMenus, setAvailableMenus] = useState<MenuItem[]>([
     { name: "Beranda", href: "/" },
@@ -32,6 +35,24 @@ export default function Navbar() {
   const [userRole, setUserRole] = useState("");
   const [userName, setUserName] = useState("");
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
+
+  // FUNGSI CEK TOTAL JUMLAH PRODUK DI LOCALSTORAGE
+  const updateCartCount = () => {
+    try {
+      const savedCart = localStorage.getItem("cart");
+      if (savedCart) {
+        const parsed = JSON.parse(savedCart);
+        if (Array.isArray(parsed)) {
+          const totalQty = parsed.reduce((sum: number, item: any) => sum + Number(item.quantity || 1), 0);
+          setCartCount(totalQty);
+          return;
+        }
+      }
+      setCartCount(0);
+    } catch (e) {
+      setCartCount(0);
+    }
+  };
 
   // FUNGSI CEK KETERSEDIAAN DATA SECARA PRESISI MULTI-FORMAT
   const checkAvailableModules = async () => {
@@ -149,6 +170,7 @@ export default function Navbar() {
 
   useEffect(() => {
     checkAvailableModules();
+    updateCartCount();
 
     const handleScroll = () => {
       if (window.scrollY > 50) {
@@ -157,7 +179,9 @@ export default function Navbar() {
         setIsScrolled(false);
       }
     };
+
     window.addEventListener("scroll", handleScroll);
+    window.addEventListener("storage", updateCartCount);
 
     // PENGECEKAN SESSION & AVATAR
     const adminToken = localStorage.getItem("admin_token");
@@ -183,7 +207,10 @@ export default function Navbar() {
       setUserAvatar(null);
     }
 
-    return () => window.removeEventListener("scroll", handleScroll);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("storage", updateCartCount);
+    };
   }, [pathname]);
 
   const handleLogout = () => {
@@ -246,8 +273,9 @@ export default function Navbar() {
             ))}
           </nav>
 
-          {/* RIGHT: SEARCH & AUTH BUTTON */}
+          {/* RIGHT: SEARCH, CART & AUTH BUTTON */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            {/* SEARCH BUTTON (DESKTOP) */}
             <div
               onClick={() => setIsSearchOpen(true)}
               className="hidden sm:flex items-center justify-between w-32 md:w-40 px-4 py-2 bg-slate-900/5 border border-slate-900/10 hover:bg-slate-900/10 rounded-full cursor-pointer transition gap-2 group text-slate-800"
@@ -256,6 +284,7 @@ export default function Navbar() {
               <Search size={13} className="transition text-slate-600 group-hover:text-emerald-600" />
             </div>
 
+            {/* SEARCH BUTTON (MOBILE) */}
             <button
               onClick={() => setIsSearchOpen(true)}
               className="sm:hidden p-2 rounded-full bg-slate-900/5 text-slate-800 transition"
@@ -263,6 +292,20 @@ export default function Navbar() {
             >
               <Search size={14} />
             </button>
+
+            {/* IKON KERANJANG / CHECKOUT DENGAN BADGE COUNTER */}
+            <Link
+              href="/checkout"
+              className="relative p-2 sm:p-2.5 rounded-full bg-slate-900/5 hover:bg-emerald-50 text-slate-800 hover:text-emerald-600 border border-slate-900/10 hover:border-emerald-200 transition flex items-center justify-center group"
+              title="Keranjang & Checkout Belanja"
+            >
+              <ShoppingBag size={16} className="transition group-hover:scale-110" />
+              {cartCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-emerald-600 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center border-2 border-white shadow-sm animate-pulse">
+                  {cartCount}
+                </span>
+              )}
+            </Link>
 
             {/* DESKTOP AUTH */}
             <div className="hidden sm:flex items-center gap-2">

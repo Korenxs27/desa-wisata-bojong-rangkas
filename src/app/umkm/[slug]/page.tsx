@@ -228,11 +228,13 @@ export default async function UMKMDetailPage({ params }: PageProps) {
             )}
 
             <ClientOrderForm 
-              productId={product.id} 
-              productName={product.name} 
-              productPrice={parseInt(product.price || "0")} 
-              stockStatus={product.stock_status}
-            />
+  productId={product.id} 
+  productName={product.name} 
+  productPrice={parseInt(product.price || "0")} 
+  stockStatus={product.stock_status}
+  productImage={product.images && product.images.length > 0 ? product.images[0].src : ""}
+  category={product.categories && product.categories.length > 0 ? product.categories[0].name : "UMKM"}
+/>
 
             <div className="flex items-center justify-center gap-1 text-[10px] text-neutral-400 text-center border-t border-neutral-100 pt-4 font-light">
               <ShieldCheck size={12} className="text-emerald-500 shrink-0"/> Gateway Otomatis WooCommerce & Midtrans Live

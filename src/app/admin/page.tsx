@@ -27,7 +27,8 @@ import {
   Search,
   ChevronDown,
   ChevronUp,
-  Calendar
+  Calendar,
+  Truck
 } from "lucide-react";
 
 export default function AdminDashboard() {
@@ -38,7 +39,7 @@ export default function AdminDashboard() {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   
-  // State untuk Modal Detail Booking
+  // State untuk Modal Detail Booking / Order
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
 
   // State untuk Filter Kotak Masuk Pesan & Toggle Lihat Semua
@@ -46,7 +47,7 @@ export default function AdminDashboard() {
   const [showAllMessages, setShowAllMessages] = useState(false);
   const [showAllOrders, setShowAllOrders] = useState(false);
   
-  // State Statistik Data dari WordPress, WooCommerce, & Galeri
+  // State Statistik Data
   const [stats, setStats] = useState({
     totalGallery: 0,
     categories: 0,
@@ -60,6 +61,7 @@ export default function AdminDashboard() {
   const [messages, setMessages] = useState<any[]>([]);
 
   const wpUrl = "https://desa-wisata-bojongrangkas.com/wp-json";
+
   useEffect(() => {
     const adminToken = localStorage.getItem("admin_token");
     const name = localStorage.getItem("admin_name");
@@ -74,13 +76,13 @@ export default function AdminDashboard() {
     fetchAllAdminData();
   }, [router]);
 
-  // Fetch Data Komprehensif dari REST API WordPress, WooCommerce, & Galeri
+  // Fetch Data Komprehensif
   const fetchAllAdminData = async () => {
     setLoading(true);
     setRefreshing(true);
 
     try {
-      // 1. Ambil Kategori WP secara aman
+      // 1. Ambil Kategori WP
       let catTotal = 0;
       try {
         const catRes = await fetch(`${wpUrl}/wp/v2/categories?per_page=1`);
@@ -91,7 +93,7 @@ export default function AdminDashboard() {
         console.warn("Gagal mengambil kategori:", e);
       }
 
-      // 2. Ambil User Count secara aman
+      // 2. Ambil User Count
       let userCount = 0;
       try {
         const usersRes = await fetch(`${wpUrl}/wp/v2/users/count`);
@@ -127,13 +129,11 @@ export default function AdminDashboard() {
         if (orderRes.ok) {
           const orderJson = await orderRes.json();
           if (orderJson.success && Array.isArray(orderJson.orders)) {
-            // Filter pesanan yang bukan berstatus trash / cancelled / failed
             ordersData = orderJson.orders.filter((ord: any) => 
               ord.status !== 'trash' && ord.status !== 'cancelled' && ord.status !== 'failed'
             );
             realTotalOrders = ordersData.length;
             
-            // FIX: Hitung HANYA dari order LUNAS (completed / processing). Mencegah nominal pending masuk.
             realRevenue = ordersData
               .filter((o: any) => o.status === 'completed' || o.status === 'processing')
               .reduce((sum: number, o: any) => sum + Number(o.total || 0), 0);
@@ -157,7 +157,6 @@ export default function AdminDashboard() {
         console.error("Gagal mengambil pesan aspirasi:", err);
       }
 
-      // Update State Keseluruhan
       setStats({
         totalGallery: totalGalleryCount,
         categories: catTotal,
@@ -202,7 +201,7 @@ export default function AdminDashboard() {
           iconTheme: { primary: '#34d399', secondary: '#065f46' }
         });
         setSelectedOrder(null);
-        fetchAllAdminData(); // Refresh data otomatis agar total pendapatan langsung bertambah secara real-time
+        fetchAllAdminData();
       } else {
         toast.error(`Gagal: ${data.message || "Kesalahan server WordPress"}`, {
           style: { borderRadius: '16px', fontSize: '12px' }
@@ -227,7 +226,6 @@ export default function AdminDashboard() {
     router.refresh();
   };
 
-  // Filter & Batasi Pesan
   const filteredMessages = messages.filter((msg) => {
     const query = messageSearch.toLowerCase();
     const nameMatch = msg.nama?.toLowerCase().includes(query);
@@ -239,7 +237,6 @@ export default function AdminDashboard() {
   const displayedMessages = showAllMessages ? filteredMessages : filteredMessages.slice(0, 5);
   const displayedOrders = showAllOrders ? orders : orders.slice(0, 5);
 
-  // Helper Formatter Tanggal
   const formatTanggalIndo = (dateString: string) => {
     if (!dateString || dateString === "-") return "-";
     try {
@@ -470,12 +467,12 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* 🧾 MONITORING ORDERS REAL-TIME */}
+        {/* MONITORING ORDERS REAL-TIME */}
         <div className="bg-white/80 backdrop-blur-md p-5 sm:p-6 rounded-3xl shadow-sm border border-slate-200/60">
           <div className="flex justify-between items-center mb-6">
             <div>
               <h2 className="text-sm sm:text-base font-bold text-slate-900">Daftar Pesanan & Status Pembayaran</h2>
-              <p className="text-[11px] sm:text-xs text-slate-500">Menampilkan daftar transaksi pesanan terbaru dari wisatawan.</p>
+              <p className="text-[11px] sm:text-xs text-slate-500">Menampilkan daftar transaksi pesanan terbaru dari wisatawan & pembeli UMKM.</p>
             </div>
             <span className="text-[10px] sm:text-xs font-semibold text-emerald-600 bg-emerald-50 px-2.5 sm:px-3 py-1.5 rounded-xl">
               Total: {orders.length} Orders
@@ -509,7 +506,7 @@ export default function AdminDashboard() {
                         {order.billing?.first_name || order.billing?.last_name ? `${order.billing?.first_name || ''} ${order.billing?.last_name || ''}`.trim() : "Pelanggan"}
                         <div className="text-[11px] text-slate-400 font-normal">{order.billing?.email}</div>
                       </td>
-                      <td className="py-4 text-slate-600 font-medium">{order.line_items_name || "Booking Wisata / Homestay"}</td>
+                      <td className="py-4 text-slate-600 font-medium">{order.line_items_name || "Pesanan Produk / Wisata"}</td>
                       <td className="py-4 font-bold text-slate-900">Rp {Number(order.total || 0).toLocaleString("id-ID")}</td>
                       <td className="py-4">
                         {order.status === "completed" || order.status === "processing" ? (
@@ -554,7 +551,7 @@ export default function AdminDashboard() {
           )}
         </div>
 
-        {/* 💬 KOTAK MASUK PESAN & ASPIRASI */}
+        {/* KOTAK MASUK PESAN & ASPIRASI */}
         <div className="bg-white/80 backdrop-blur-md p-5 sm:p-6 rounded-3xl shadow-sm border border-slate-200/60 space-y-4">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div className="flex items-center gap-3">
@@ -610,7 +607,6 @@ export default function AdminDashboard() {
             </table>
           </div>
 
-          {/* TOMBOL LIHAT SEMUA UNTUK TABEL PESAN */}
           {filteredMessages.length > 5 && (
             <div className="pt-4 text-center border-t border-slate-100 mt-2">
               <button
@@ -679,21 +675,32 @@ export default function AdminDashboard() {
 
               <div className="bg-slate-50 p-4 rounded-2xl space-y-2 border border-slate-100">
                 <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px] text-emerald-700">
-                  🏷️ Detail Transaksi & Rencana Kunjungan
+                  🏷️ Detail Transaksi
                 </h4>
                 <div className="space-y-2 text-slate-600">
                   <div>
                     <span className="text-slate-400 block text-[10px]">Kategori</span>
-                    <strong className="text-slate-800">{selectedOrder.jenis_pesanan || "Umum"}</strong>
+                    <strong className="text-slate-800">{selectedOrder.jenis_pesanan || "UMKM"}</strong>
                   </div>
 
                   <div>
-                    <span className="text-slate-400 block text-[10px]">Nama Paket / Produk</span>
+                    <span className="text-slate-400 block text-[10px]">Nama Produk / Paket</span>
                     <strong className="text-slate-800">{selectedOrder.line_items_name || selectedOrder.nama_paket || "-"}</strong>
                   </div>
 
-                  {/* TAMPILAN TANGGAL KUNJUNGAN / RESERVASI */}
-                  {selectedOrder.jenis_pesanan === 'Homestay' ? (
+                  {/* KONDISIONAL BERDASARKAN JENIS PESANAN */}
+                  {selectedOrder.jenis_pesanan === 'UMKM' ? (
+                    // TAMPILAN ALAMAT UNTUK UMKM (TANPA JADWAL KUNJUNGAN)
+                    <div className="p-3 bg-amber-50/80 rounded-xl border border-amber-100/80 mt-2 space-y-0.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 flex items-center gap-1">
+                        <Truck size={13} /> Alamat Pengiriman Pemesan
+                      </span>
+                      <strong className="text-amber-950 text-xs font-semibold block leading-relaxed pt-0.5">
+                        {selectedOrder.billing?.address || selectedOrder.address || "-"}
+                      </strong>
+                    </div>
+                  ) : selectedOrder.jenis_pesanan === 'Homestay' ? (
+                    // TAMPILAN HOMESTAY (CHECK-IN & CHECK-OUT)
                     <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200/60">
                       <div>
                         <span className="text-slate-400 block text-[10px]">Tanggal Check-in</span>
@@ -705,6 +712,7 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                   ) : (
+                    // TAMPILAN WISATA & PAKET (JADWAL KUNJUNGAN)
                     <div className="p-3 bg-emerald-50/80 rounded-xl border border-emerald-100/80 mt-2 space-y-0.5">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 flex items-center gap-1">
                         <Calendar size={12} /> Jadwal Rencana Kunjungan
@@ -722,20 +730,24 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* Tampilan Bukti Transfer jika diunggah user */}
-              {selectedOrder.bukti_url && (
+              {/* TAMPILAN BUKTI TRANSFER PADA MODAL */}
+              {selectedOrder.bukti_url ? (
                 <div className="bg-slate-50 p-4 rounded-2xl space-y-2 border border-slate-100">
                   <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px] text-emerald-700">
-                    🧾 Bukti Transfer
+                    🧾 Bukti Transfer Pemesan
                   </h4>
                   <a href={selectedOrder.bukti_url} target="_blank" rel="noopener noreferrer" className="block">
                     <img 
                       src={selectedOrder.bukti_url} 
-                      alt="Bukti Transfer" 
-                      className="w-full max-h-40 object-cover rounded-xl border border-slate-200 hover:opacity-95 transition" 
+                      alt="Bukti Transfer Pemesan" 
+                      className="w-full max-h-48 object-cover rounded-xl border border-slate-200 hover:opacity-95 transition" 
                     />
                   </a>
-                  <p className="text-[10px] text-slate-400 italic">Klik gambar untuk memperbesar.</p>
+                  <p className="text-[10px] text-slate-400 italic">Klik gambar untuk membuka/memperbesar gambar utuh.</p>
+                </div>
+              ) : (
+                <div className="bg-red-50/60 p-3 rounded-2xl border border-red-100 text-[11px] text-red-600 font-medium italic">
+                  ⚠️ Pemesan belum mengunggah bukti transfer.
                 </div>
               )}
 
